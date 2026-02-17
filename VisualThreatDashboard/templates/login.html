@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - Visual Threat Dashboard</title>
+    <style>
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      .container {
+        background: white;
+        border-radius: 15px;
+        padding: 40px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        width: 100%;
+        max-width: 400px;
+      }
+      h1 {
+        color: #4a5568;
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 5px;
+        color: #4a5568;
+        font-weight: 500;
+      }
+      input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #cbd5e0;
+        border-radius: 8px;
+        font-size: 16px;
+        box-sizing: border-box;
+      }
+      input:focus {
+        outline: none;
+        border-color: #4299e1;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+      }
+      .btn {
+        width: 100%;
+        background: #48bb78;
+        color: white;
+        border: none;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background 0.3s;
+        margin-top: 10px;
+      }
+      .btn:hover {
+        background: #38a169;
+      }
+      .register-link {
+        text-align: center;
+        margin-top: 20px;
+        color: #4a5568;
+      }
+      .register-link a {
+        color: #4299e1;
+        text-decoration: none;
+      }
+      .error {
+        color: #e53e3e;
+        background: #fed7d7;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        display: none;
+      }
+      .success {
+        color: #38a169;
+        background: #c6f6d5;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Welcome Back</h1>
+
+      <div id="message" class="error"></div>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" required />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required />
+        </div>
+
+        <button type="submit" class="btn">Login</button>
+      </form>
+
+      <div class="register-link">
+        Don't have an account? <a href="/register">Register here</a>
+      </div>
+    </div>
+
+    <script>
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", function (e) {
+          e.preventDefault();
+
+          const messageDiv = document.getElementById("message");
+          messageDiv.innerHTML = "";
+          messageDiv.className = "error";
+          messageDiv.style.display = "none";
+
+          const email = document.getElementById("email").value;
+          const password = document.getElementById("password").value;
+
+          // Show loading
+          const submitBtn = document.querySelector(".btn");
+          const originalText = submitBtn.innerHTML;
+          submitBtn.innerHTML = "Logging in...";
+          submitBtn.disabled = true;
+
+          // Send login request
+          fetch("/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email, password }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              console.log("Login response:", data);
+
+              if (data.success) {
+                messageDiv.innerHTML = "✅ Login successful! Redirecting...";
+                messageDiv.className = "success";
+                messageDiv.style.display = "block";
+
+                // Redirect to dashboard
+                setTimeout(() => {
+                  window.location.href = data.redirect || "/dashboard";
+                }, 1000);
+              } else {
+                messageDiv.innerHTML = "❌ " + data.message;
+                messageDiv.className = "error";
+                messageDiv.style.display = "block";
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+              }
+            })
+            .catch((error) => {
+              console.error("Login error:", error);
+              messageDiv.innerHTML = "❌ Login failed. Please try again.";
+              messageDiv.className = "error";
+              messageDiv.style.display = "block";
+              submitBtn.innerHTML = originalText;
+              submitBtn.disabled = false;
+            });
+        });
+    </script>
+  </body>
+</html>

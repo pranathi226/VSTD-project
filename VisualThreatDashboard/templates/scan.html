@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% block title %}Device Scan{% endblock %}
+
+{% block extra_head %}
+<style>
+    .scan-panel{background:rgba(26,60,110,.55);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:28px;margin-bottom:20px;text-align:center}
+    .scan-icon{font-size:64px;color:#00b4d8;margin-bottom:16px}
+    .scan-icon.scanning{animation:spin 2s linear infinite}
+    @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+    .progress-ring{width:100%;height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;margin:18px 0}
+    .progress-ring .bar{height:100%;background:linear-gradient(90deg,#00b4d8,#2a9d8f);border-radius:4px;transition:width .4s ease;width:0}
+    .btn-scan{background:linear-gradient(135deg,#2a9d8f,#00b4d8);color:#fff;border:none;padding:16px 48px;border-radius:10px;font-size:18px;font-weight:700;cursor:pointer;transition:all .3s;display:inline-flex;align-items:center;gap:10px}
+    .btn-scan:hover{transform:translateY(-3px);box-shadow:0 8px 25px rgba(0,180,216,.35)}
+    .btn-scan:disabled{opacity:.6;cursor:not-allowed;transform:none;box-shadow:none}
+    .result-box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:22px;margin-top:24px;text-align:left;display:none}
+    .result-box.show{display:block}
+    .result-box.success{border-left:4px solid #2a9d8f}.result-box.danger{border-left:4px solid #e63946}
+    .score-circle{width:100px;height:100px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:700;margin:0 auto 16px;border:4px solid}
+    .score-good{border-color:#2a9d8f;color:#2a9d8f;background:rgba(42,157,143,.08)}
+    .score-warn{border-color:#f77f00;color:#f77f00;background:rgba(247,127,0,.08)}
+    .score-bad{border-color:#e63946;color:#e63946;background:rgba(230,57,70,.08)}
+    .scan-stat{text-align:center;padding:16px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px}
+    .scan-stat .val{font-size:26px;font-weight:700;line-height:1.1}.scan-stat .lbl{font-size:11px;color:#6b7d99;text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+    .step-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(255,255,255,.03);border-radius:8px;margin-bottom:6px;font-size:13px;transition:background .2s}
+    .step-item.done{color:#2a9d8f}.step-item.active{background:rgba(0,180,216,.08);color:#00b4d8}.step-item.pending{color:#6b7d99}
+    .step-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+    .step-dot.done{background:#2a9d8f}.step-dot.active{background:#00b4d8;animation:pulse 1.5s infinite}.step-dot.pending{background:#384860}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .scan-summary{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:20px;margin-top:20px;display:none}
+    .scan-summary.show{display:block}
+    .scan-summary .summary-item{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}
+    .scan-summary .summary-item:last-child{border-bottom:none}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1"><i class="bi bi-search me-2"></i>Device Security Scan</h4>
+        <p class="text-muted mb-0">Comprehensive system scan for threats and vulnerabilities</p>
+    </div>
+    <div>
+        <button class="btn-action" onclick="window.location.href='/dashboard'"><i class="bi bi-speedometer2 me-1"></i>Dashboard</button>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Scan Panel -->
+        <div class="scan-panel">
+            <div id="scanIcon" class="scan-icon"><i class="bi bi-shield-check"></i></div>
+            <h3 id="scanTitle" style="margin-bottom:8px">Ready to Scan</h3>
+            <p id="scanSubtitle" class="text-muted" style="max-width:500px;margin:0 auto">Analyze your system for malware, suspicious processes, network threats, file anomalies, and resource abuse.</p>
+
+            <div class="progress-ring" id="progressRing" style="display:none">
+                <div class="bar" id="progressBar"></div>
+            </div>
+            <div id="progressText" style="font-size:13px;color:#6b7d99;display:none">Initializing scan...</div>
+
+            <div style="margin-top:24px">
+                <button class="btn-scan" id="scanBtn" onclick="startScan()"><i class="bi bi-play-fill"></i> Start Security Scan</button>
+            </div>
+
+            <!-- Result -->
+            <div class="result-box" id="resultBox">
+                <div class="row align-items-center">
+                    <div class="col-md-4 text-center">
+                        <div class="score-circle" id="scoreCircle">--</div>
+                        <div style="font-size:13px;color:#6b7d99">Security Score</div>
+                    </div>
+                    <div class="col-md-8">
+                        <h5 id="resultTitle" style="font-weight:600;margin-bottom:8px"></h5>
+                        <p id="resultMsg" style="color:#adb5bd;font-size:14px;margin-bottom:12px"></p>
+                        <div class="d-flex gap-2">
+                            <button class="btn-action" onclick="window.location.href='/dashboard'"><i class="bi bi-speedometer2 me-1"></i>View Dashboard</button>
+                            <button class="btn-action" onclick="startScan()" style="background:linear-gradient(135deg,#2a9d8f,#00b4d8)"><i class="bi bi-arrow-clockwise me-1"></i>Scan Again</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Scan Steps -->
+        <div class="scan-panel" style="text-align:left;padding:20px">
+            <h6 style="margin-bottom:14px"><i class="bi bi-list-check me-2"></i>Scan Phases</h6>
+            <div id="scanSteps">
+                <div class="step-item pending" id="step0"><span class="step-dot pending"></span> Suspicious Processes</div>
+                <div class="step-item pending" id="step1"><span class="step-dot pending"></span> Network Connections</div>
+                <div class="step-item pending" id="step2"><span class="step-dot pending"></span> Resource Abuse</div>
+                <div class="step-item pending" id="step3"><span class="step-dot pending"></span> Suspicious Files</div>
+                <div class="step-item pending" id="step4"><span class="step-dot pending"></span> System Anomalies</div>
+            </div>
+        </div>
+
+        <!-- Last Scan Info -->
+        <div class="scan-panel" style="text-align:left;padding:20px">
+            <h6 style="margin-bottom:14px"><i class="bi bi-clock-history me-2"></i>Scan History</h6>
+            <div class="set-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+                <span style="font-size:13px;color:#6b7d99">Last Scan</span>
+                <span style="font-size:13px">{{ user.last_scan.strftime('%b %d, %Y %H:%M') if user and user.last_scan else 'Never' }}</span>
+            </div>
+            <div class="set-row" style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+                <span style="font-size:13px;color:#6b7d99">Security Score</span>
+                <span style="font-size:13px;font-weight:700;color:#00b4d8">{{ user.security_score if user else '--' }}/100</span>
+            </div>
+            <div class="set-row" style="display:flex;justify-content:space-between;padding:8px 0">
+                <span style="font-size:13px;color:#6b7d99">Monitoring</span>
+                <span id="monitoringStatus" style="font-size:13px;color:{{ '#2a9d8f' if user and user.monitoring_active else '#e63946' }};cursor:pointer" onclick="toggleMonitoring()">{{ 'Active' if user and user.monitoring_active else 'Inactive' }} <i class="bi bi-toggle-{{ 'on' if user and user.monitoring_active else 'off' }}"></i></span>
+            </div>
+        </div>
+
+        <!-- Post-Scan Summary -->
+        <div class="scan-summary" id="scanSummary">
+            <h6 style="margin-bottom:14px"><i class="bi bi-clipboard-data me-2"></i>Scan Summary</h6>
+            <div id="summaryContent"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const steps=['Suspicious Processes','Network Connections','Resource Abuse','Suspicious Files','System Anomalies'];
+let scanning=false;
+
+function startScan(){
+    if(scanning) return;
+    scanning=true;
+    const btn=document.getElementById('scanBtn');
+    btn.disabled=true;
+    btn.innerHTML='<i class="bi bi-hourglass-split"></i> Scanning...';
+
+    document.getElementById('scanIcon').innerHTML='<i class="bi bi-arrow-repeat"></i>';
+    document.getElementById('scanIcon').classList.add('scanning');
+    document.getElementById('scanTitle').textContent='Scanning...';
+    document.getElementById('scanSubtitle').textContent='Analyzing your system for security threats';
+    document.getElementById('progressRing').style.display='block';
+    document.getElementById('progressText').style.display='block';
+    document.getElementById('resultBox').classList.remove('show');
+
+    // Reset steps
+    steps.forEach((_,i)=>{
+        const el=document.getElementById('step'+i);
+        el.className='step-item pending';
+        el.querySelector('.step-dot').className='step-dot pending';
+    });
+
+    // Animate progress
+    let progress=0;
+    const interval=setInterval(()=>{
+        progress+=Math.random()*15+5;
+        if(progress>95) progress=95;
+        document.getElementById('progressBar').style.width=progress+'%';
+
+        // Update steps
+        const stepIdx=Math.min(Math.floor(progress/20), 4);
+        for(let i=0;i<5;i++){
+            const el=document.getElementById('step'+i);
+            const dot=el.querySelector('.step-dot');
+            if(i<stepIdx){
+                el.className='step-item done';dot.className='step-dot done';
+            } else if(i===stepIdx){
+                el.className='step-item active';dot.className='step-dot active';
+                document.getElementById('progressText').textContent='Checking: '+steps[i]+'...';
+            } else {
+                el.className='step-item pending';dot.className='step-dot pending';
+            }
+        }
+
+        if(progress>=95){clearInterval(interval);performScan();}
+    },400);
+}
+
+function performScan(){
+    fetch('/api/system/scan',{method:'POST',headers:{'Content-Type':'application/json'}})
+    .then(r=>r.json())
+    .then(data=>{
+        document.getElementById('progressBar').style.width='100%';
+        document.getElementById('progressText').textContent='Scan complete!';
+
+        // Mark all steps done
+        steps.forEach((_,i)=>{
+            const el=document.getElementById('step'+i);
+            el.className='step-item done';
+            el.querySelector('.step-dot').className='step-dot done';
+        });
+
+        document.getElementById('scanIcon').classList.remove('scanning');
+        const btn=document.getElementById('scanBtn');
+
+        if(data.success){
+            const threats=data.threats_found||0;
+            const score=threats===0?100:Math.max(0,100-threats*10);
+            const scoreEl=document.getElementById('scoreCircle');
+            scoreEl.textContent=score;
+            scoreEl.className='score-circle '+(score>=80?'score-good':score>=50?'score-warn':'score-bad');
+
+            document.getElementById('scanIcon').innerHTML='<i class="bi bi-'+(threats===0?'shield-check':'shield-exclamation')+'"></i>';
+            document.getElementById('scanTitle').textContent=threats===0?'System Secure':'Threats Detected';
+            document.getElementById('resultTitle').textContent=data.message;
+            document.getElementById('resultMsg').textContent=threats>0?threats+' potential threat(s) found. Review them in the dashboard.':'No threats detected. Your system looks clean!';
+
+            const rb=document.getElementById('resultBox');
+            rb.className='result-box show '+(threats===0?'success':'danger');
+
+            // Fetch dashboard data for post-scan summary
+            loadScanSummary();
+        } else {
+            document.getElementById('scanIcon').innerHTML='<i class="bi bi-exclamation-triangle"></i>';
+            document.getElementById('scanTitle').textContent='Scan Failed';
+            document.getElementById('resultTitle').textContent='Error';
+            document.getElementById('resultMsg').textContent=data.message;
+            document.getElementById('resultBox').className='result-box show danger';
+            document.getElementById('scoreCircle').textContent='--';
+            document.getElementById('scoreCircle').className='score-circle score-bad';
+        }
+
+        btn.disabled=false;
+        btn.innerHTML='<i class="bi bi-arrow-clockwise"></i> Scan Again';
+        scanning=false;
+    })
+    .catch(err=>{
+        document.getElementById('scanIcon').classList.remove('scanning');
+        document.getElementById('scanIcon').innerHTML='<i class="bi bi-exclamation-triangle"></i>';
+        document.getElementById('scanTitle').textContent='Scan Error';
+        document.getElementById('resultTitle').textContent='Connection Error';
+        document.getElementById('resultMsg').textContent='Failed to complete scan: '+err;
+        document.getElementById('resultBox').className='result-box show danger';
+        document.getElementById('scoreCircle').textContent='--';
+        document.getElementById('scoreCircle').className='score-circle score-bad';
+        const btn=document.getElementById('scanBtn');
+        btn.disabled=false;
+        btn.innerHTML='<i class="bi bi-arrow-clockwise"></i> Try Again';
+        scanning=false;
+    });
+}
+
+function loadScanSummary(){
+    fetch('/api/dashboard-data').then(r=>r.json()).then(data=>{
+        if(!data.success) return;
+        const s=data.threat_stats;
+        const metrics=data.system_metrics;
+        let latest={cpu:0,memory:0,disk:0};
+        if(metrics&&metrics.length) latest=metrics[0];
+        const html=`
+            <div class="summary-item"><span style="color:#6b7d99">Total Threats</span><span style="font-weight:700;color:#00b4d8">${s.total||0}</span></div>
+            <div class="summary-item"><span style="color:#6b7d99">Critical</span><span style="font-weight:700;color:#e63946">${s.critical||0}</span></div>
+            <div class="summary-item"><span style="color:#6b7d99">High</span><span style="font-weight:700;color:#f77f00">${s.high||0}</span></div>
+            <div class="summary-item"><span style="color:#6b7d99">Medium</span><span style="font-weight:700;color:#ffd166">${s.medium||0}</span></div>
+            <div class="summary-item"><span style="color:#6b7d99">Low</span><span style="font-weight:700;color:#2a9d8f">${s.low||0}</span></div>
+            <div class="summary-item"><span style="color:#6b7d99">Mitigated</span><span style="font-weight:700;color:#2a9d8f">${s.mitigated||0}</span></div>
+            <div class="summary-item"><span style="color:#6b7d99">Active (Unresolved)</span><span style="font-weight:700;color:#e63946">${s.detected||0}</span></div>
+            <div class="summary-item" style="border-top:1px solid rgba(255,255,255,.1);padding-top:12px;margin-top:4px"><span style="color:#6b7d99">CPU Usage</span><span>${Math.round(latest.cpu||0)}%</span></div>
+            <div class="summary-item"><span style="color:#6b7d99">Memory Usage</span><span>${Math.round(latest.memory||0)}%</span></div>
+            <div class="summary-item"><span style="color:#6b7d99">Disk Usage</span><span>${Math.round(latest.disk||0)}%</span></div>
+        `;
+        document.getElementById('summaryContent').innerHTML=html;
+        document.getElementById('scanSummary').classList.add('show');
+    }).catch(console.error);
+}
+
+function toggleMonitoring(){
+    const el=document.getElementById('monitoringStatus');
+    const isActive=el.textContent.trim().startsWith('Active');
+    const action=isActive?'stop':'start';
+    fetch('/api/monitoring/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})})
+    .then(r=>r.json()).then(d=>{
+        if(d.success){
+            el.style.color=isActive?'#e63946':'#2a9d8f';
+            el.innerHTML=(isActive?'Inactive':'Active')+' <i class="bi bi-toggle-'+(isActive?'off':'on')+'"></i>';
+        }
+    }).catch(console.error);
+}
+</script>
+{% endblock %}

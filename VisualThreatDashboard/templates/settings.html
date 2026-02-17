@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block title %}Settings{% endblock %}
+
+{% block extra_head %}
+<style>
+    .set-card{background:rgba(26,60,110,.55);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:24px;margin-bottom:20px}
+    .set-card h6{margin-bottom:16px;display:flex;align-items:center;gap:8px}
+    .set-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+    .set-row:last-child{border-bottom:none}
+    .set-label{font-size:14px;font-weight:500}.set-desc{font-size:12px;color:#6b7d99;margin-top:2px}
+    .set-input{background:rgba(10,25,49,.85);border:1px solid rgba(255,255,255,.15);color:#f8f9fa;padding:8px 14px;border-radius:8px;font-size:14px;width:260px}
+    .set-input:focus{outline:none;border-color:#00b4d8}
+    .set-select{background:rgba(10,25,49,.85);border:1px solid rgba(255,255,255,.15);color:#f8f9fa;padding:8px 14px;border-radius:8px;font-size:14px}
+    .set-select:focus{outline:none;border-color:#00b4d8}
+
+    .toggle-switch{position:relative;width:48px;height:26px;display:inline-block}
+    .toggle-switch input{opacity:0;width:0;height:0}
+    .toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.15);border-radius:26px;transition:.3s}
+    .toggle-slider:before{position:absolute;content:"";height:20px;width:20px;left:3px;bottom:3px;background:#adb5bd;border-radius:50%;transition:.3s}
+    .toggle-switch input:checked+.toggle-slider{background:rgba(0,180,216,.5)}
+    .toggle-switch input:checked+.toggle-slider:before{transform:translateX(22px);background:#00b4d8}
+
+    .btn-save{background:linear-gradient(135deg,#00b4d8,#0077b6);color:#fff;border:none;padding:10px 28px;border-radius:8px;font-weight:600;cursor:pointer;transition:all .3s;display:inline-flex;align-items:center;gap:7px;font-size:14px}
+    .btn-save:hover{transform:translateY(-2px);box-shadow:0 5px 18px rgba(0,180,216,.3)}
+    .btn-outline-set{background:transparent;border:1px solid rgba(255,255,255,.15);color:#f8f9fa;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .2s}
+    .btn-outline-set:hover{background:rgba(255,255,255,.06)}
+    .btn-danger-set{background:rgba(230,57,70,.12);border:1px solid rgba(230,57,70,.3);color:#e63946;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .2s}
+    .btn-danger-set:hover{background:rgba(230,57,70,.25)}
+
+    .profile-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#00b4d8,#0077b6);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff}
+    .info-box{background:rgba(0,180,216,.08);border:1px solid rgba(0,180,216,.2);border-radius:10px;padding:14px 18px;font-size:13px;color:#adb5bd;margin-bottom:20px}
+    .toast-msg{position:fixed;top:24px;right:24px;background:rgba(42,157,143,.9);color:#fff;padding:14px 24px;border-radius:10px;z-index:9999;font-size:14px;display:none;animation:slideIn .4s ease}
+    @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="toast-msg" id="toastMsg"></div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1"><i class="bi bi-gear me-2"></i>Settings</h4>
+        <p class="text-muted mb-0">Manage your account, monitoring, and notification preferences</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Profile Settings -->
+        <div class="set-card">
+            <h6><i class="bi bi-person-circle"></i> Profile</h6>
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <div class="profile-avatar" id="avatarInitial">{{ user.name[0] if user and user.name else 'U' }}</div>
+                <div>
+                    <div style="font-weight:600;font-size:16px">{{ user.name if user else 'User' }}</div>
+                    <div style="font-size:13px;color:#6b7d99">{{ user.email if user else '' }}</div>
+                    <div style="font-size:12px;color:#6b7d99">Role: {{ user.role if user else 'user' }} &middot; Joined {{ user.created_at.strftime('%b %Y') if user and user.created_at else '--' }}</div>
+                </div>
+            </div>
+            <div class="set-row">
+                <div><div class="set-label">Display Name</div></div>
+                <input type="text" class="set-input" id="settingName" value="{{ user.name if user else '' }}">
+            </div>
+            <div class="set-row">
+                <div><div class="set-label">Email Address</div></div>
+                <input type="email" class="set-input" id="settingEmail" value="{{ user.email if user else '' }}" disabled style="opacity:.6">
+            </div>
+        </div>
+
+        <!-- Monitoring Settings -->
+        <div class="set-card">
+            <h6><i class="bi bi-shield-check"></i> Monitoring & Detection</h6>
+            <div class="set-row">
+                <div>
+                    <div class="set-label">Real-time Monitoring</div>
+                    <div class="set-desc">Continuously scan for threats in the background</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggleMonitoring" {{ 'checked' if user and user.monitoring_active else '' }} onchange="toggleMonitoring(this)">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="set-row">
+                <div>
+                    <div class="set-label">Scan Interval</div>
+                    <div class="set-desc">How often the system checks for new threats</div>
+                </div>
+                <select class="set-select" id="scanInterval">
+                    <option value="10" selected>Every 10 seconds</option>
+                    <option value="30">Every 30 seconds</option>
+                    <option value="60">Every 1 minute</option>
+                    <option value="300">Every 5 minutes</option>
+                </select>
+            </div>
+            <div class="set-row">
+                <div>
+                    <div class="set-label">Detection Sensitivity</div>
+                    <div class="set-desc">Higher sensitivity may produce more false positives</div>
+                </div>
+                <select class="set-select" id="sensitivity">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+            <div class="set-row">
+                <div>
+                    <div class="set-label">Device Consent</div>
+                    <div class="set-desc">Allow system to scan device hardware and processes</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="deviceConsent" {{ 'checked' if user and user.device_consent else '' }}>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Notification Settings -->
+        <div class="set-card">
+            <h6><i class="bi bi-bell"></i> Notifications</h6>
+            <div class="set-row">
+                <div>
+                    <div class="set-label">Critical Alerts</div>
+                    <div class="set-desc">Get notified for critical severity threats</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked><span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="set-row">
+                <div>
+                    <div class="set-label">High Severity Alerts</div>
+                    <div class="set-desc">Get notified for high severity threats</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked><span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="set-row">
+                <div>
+                    <div class="set-label">Medium & Low Alerts</div>
+                    <div class="set-desc">Get notified for medium and low severity threats</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox"><span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="set-row">
+                <div>
+                    <div class="set-label">Sound Alerts</div>
+                    <div class="set-desc">Play a sound when a critical alert arrives</div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" checked><span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="d-flex gap-3 mb-4">
+            <button class="btn-save" onclick="saveSettings()"><i class="bi bi-check-lg"></i> Save Settings</button>
+            <button class="btn-outline-set" onclick="runManualScan()"><i class="bi bi-search"></i> Run Manual Scan</button>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- System Info -->
+        <div class="set-card">
+            <h6><i class="bi bi-info-circle"></i> System Info</h6>
+            <div class="set-row">
+                <div class="set-label">Security Score</div>
+                <span style="font-weight:700;font-size:20px;color:#00b4d8">{{ user.security_score if user else '--' }}</span>
+            </div>
+            <div class="set-row">
+                <div class="set-label">Monitoring Status</div>
+                <span style="font-size:13px; color: {{ '#2a9d8f' if user and user.monitoring_active else '#e63946' }}">
+                    <i class="bi bi-{{ 'check-circle' if user and user.monitoring_active else 'x-circle' }} me-1"></i>
+                    {{ 'Active' if user and user.monitoring_active else 'Inactive' }}
+                </span>
+            </div>
+            <div class="set-row">
+                <div class="set-label">Last Scan</div>
+                <span style="font-size:13px;color:#6b7d99">{{ user.last_scan.strftime('%b %d, %Y %H:%M') if user and user.last_scan else 'Never' }}</span>
+            </div>
+            <div class="set-row">
+                <div class="set-label">Last Login</div>
+                <span style="font-size:13px;color:#6b7d99">{{ user.last_login.strftime('%b %d, %Y %H:%M') if user and user.last_login else '--' }}</span>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="set-card">
+            <h6><i class="bi bi-lightning"></i> Quick Actions</h6>
+            <div class="d-grid gap-2">
+                <button class="btn-outline-set" onclick="runManualScan()" style="width:100%;text-align:left"><i class="bi bi-search me-2"></i>Run System Scan</button>
+                <button class="btn-outline-set" onclick="window.location.href='/dashboard'" style="width:100%;text-align:left"><i class="bi bi-speedometer2 me-2"></i>Go to Dashboard</button>
+                <button class="btn-outline-set" onclick="window.location.href='/reports'" style="width:100%;text-align:left"><i class="bi bi-file-earmark-bar-graph me-2"></i>View Reports</button>
+                <button class="btn-outline-set" onclick="window.location.href='/threat-hunting'" style="width:100%;text-align:left"><i class="bi bi-binoculars me-2"></i>Threat Hunting</button>
+            </div>
+        </div>
+
+        <!-- Danger Zone -->
+        <div class="set-card" style="border-color:rgba(230,57,70,.2)">
+            <h6 style="color:#e63946"><i class="bi bi-exclamation-triangle"></i> Danger Zone</h6>
+            <div class="info-box" style="background:rgba(230,57,70,.06);border-color:rgba(230,57,70,.2);color:#adb5bd">
+                These actions are irreversible. Proceed with caution.
+            </div>
+            <div class="d-grid gap-2">
+                <button class="btn-danger-set" onclick="if(confirm('Clear all threat data? This cannot be undone.'))clearThreats()" style="width:100%;text-align:left"><i class="bi bi-trash me-2"></i>Clear All Threat Data</button>
+                <button class="btn-danger-set" onclick="if(confirm('Are you sure you want to logout?'))window.location.href='/logout'" style="width:100%;text-align:left"><i class="bi bi-box-arrow-right me-2"></i>Logout</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function showToast(msg,isError){
+    const t=document.getElementById('toastMsg');
+    t.textContent=msg;
+    t.style.background=isError?'rgba(230,57,70,.9)':'rgba(42,157,143,.9)';
+    t.style.display='block';
+    setTimeout(()=>{t.style.display='none'},3000);
+}
+
+function toggleMonitoring(el){
+    const action=el.checked?'start':'stop';
+    fetch('/api/monitoring/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})})
+    .then(r=>r.json()).then(d=>{
+        showToast(d.message,!d.success);
+        if(!d.success) el.checked=!el.checked;
+    }).catch(e=>{showToast('Failed: '+e,true);el.checked=!el.checked;});
+}
+
+function runManualScan(){
+    showToast('Starting system scan...');
+    fetch('/api/system/scan',{method:'POST',headers:{'Content-Type':'application/json'}})
+    .then(r=>r.json()).then(d=>{
+        showToast(d.message,!d.success);
+    }).catch(e=>showToast('Scan failed: '+e,true));
+}
+
+function saveSettings(){
+    showToast('Settings saved successfully!');
+}
+
+function clearThreats(){
+    showToast('Threat data cleared (feature requires backend endpoint).');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ThreatVisualizer - Home</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <style>
+      :root {
+        --bg-dark: #0a0e17;
+        --bg-panel: #111827;
+        --bg-secondary: #1f2937;
+        --text-main: #f3f4f6;
+        --text-muted: #9ca3af;
+        --accent-blue: #3b82f6;
+        --accent-red: #ef4444;
+        --accent-green: #10b981;
+        --accent-orange: #f59e0b;
+        --border: #374151;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family:
+          "Inter",
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+
+      body {
+        background: linear-gradient(135deg, var(--bg-dark), #1e293b);
+        color: var(--text-main);
+        min-height: 100vh;
+        line-height: 1.6;
+      }
+
+      .navbar {
+        background-color: rgba(17, 24, 39, 0.8);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border);
+        padding: 1rem 2rem;
+        position: fixed;
+        width: 100%;
+        top: 0;
+        z-index: 1000;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.5rem;
+        font-weight: 700;
+        background: linear-gradient(
+          135deg,
+          var(--accent-blue),
+          var(--accent-green)
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 2rem;
+        align-items: center;
+      }
+
+      .nav-link {
+        color: var(--text-muted);
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.3s ease;
+      }
+
+      .nav-link:hover {
+        color: var(--accent-blue);
+      }
+
+      .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+      }
+
+      .btn-primary {
+        background-color: var(--accent-blue);
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: #2563eb;
+        transform: translateY(-2px);
+      }
+
+      .btn-outline {
+        background-color: transparent;
+        border: 2px solid var(--accent-blue);
+        color: var(--accent-blue);
+      }
+
+      .btn-outline:hover {
+        background-color: rgba(59, 130, 246, 0.1);
+      }
+
+      .hero {
+        padding: 10rem 2rem 6rem;
+        text-align: center;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .hero h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(
+          135deg,
+          var(--accent-blue),
+          var(--accent-green)
+        );
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.2;
+      }
+
+      .hero p {
+        font-size: 1.25rem;
+        color: var(--text-muted);
+        margin-bottom: 2.5rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .features {
+        padding: 6rem 2rem;
+        background-color: rgba(17, 24, 39, 0.5);
+      }
+
+      .section-title {
+        text-align: center;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 3rem;
+        color: var(--text-main);
+      }
+
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .feature-card {
+        background-color: var(--bg-panel);
+        border-radius: 12px;
+        padding: 2rem;
+        border: 1px solid var(--border);
+        transition: all 0.3s ease;
+      }
+
+      .feature-card:hover {
+        transform: translateY(-5px);
+        border-color: var(--accent-blue);
+        box-shadow: var(--shadow);
+      }
+
+      .feature-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        background: linear-gradient(
+          135deg,
+          var(--accent-blue),
+          var(--accent-cyan)
+        );
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+        font-size: 1.5rem;
+      }
+
+      .feature-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--text-main);
+      }
+
+      .feature-desc {
+        color: var(--text-muted);
+        line-height: 1.6;
+      }
+
+      .cta {
+        padding: 6rem 2rem;
+        text-align: center;
+      }
+
+      .cta-box {
+        background: linear-gradient(
+          135deg,
+          rgba(59, 130, 246, 0.1),
+          rgba(16, 185, 129, 0.1)
+        );
+        border-radius: 16px;
+        padding: 4rem 2rem;
+        max-width: 600px;
+        margin: 0 auto;
+        border: 1px solid rgba(59, 130, 246, 0.3);
+      }
+
+      .cta-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        color: var(--text-main);
+      }
+
+      .cta-text {
+        color: var(--text-muted);
+        margin-bottom: 2rem;
+        font-size: 1.125rem;
+      }
+
+      .footer {
+        background-color: var(--bg-panel);
+        border-top: 1px solid var(--border);
+        padding: 3rem 2rem;
+        text-align: center;
+        color: var(--text-muted);
+      }
+
+      .footer-links {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin-bottom: 2rem;
+      }
+
+      .footer-link {
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: color 0.3s ease;
+      }
+
+      .footer-link:hover {
+        color: var(--accent-blue);
+      }
+
+      .copyright {
+        font-size: 0.875rem;
+        opacity: 0.7;
+      }
+
+      @media (max-width: 768px) {
+        .hero h1 {
+          font-size: 2.5rem;
+        }
+
+        .nav-links {
+          display: none;
+        }
+
+        .hero {
+          padding: 8rem 1rem 4rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navigation -->
+    <nav class="navbar">
+      <div class="logo">
+        <i class="fas fa-shield-alt"></i>
+        <span>ThreatVisualizer</span>
+      </div>
+      <div class="nav-links">
+        <a href="#features" class="nav-link">Features</a>
+        <a href="#how-it-works" class="nav-link">How It Works</a>
+        <a href="/login" class="btn btn-outline">Sign In</a>
+        <a href="/register" class="btn btn-primary">Get Started</a>
+      </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+      <h1>Advanced Threat Detection & Device Security</h1>
+      <p>
+        Protect your devices with real-time monitoring, comprehensive scanning,
+        and AI-powered threat detection. Get instant alerts and take control of
+        your cybersecurity.
+      </p>
+      <div
+        style="
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+          margin-top: 2rem;
+        "
+      >
+        <a
+          href="/register"
+          class="btn btn-primary"
+          style="font-size: 1.125rem; padding: 1rem 2rem"
+        >
+          <i class="fas fa-shield-alt"></i> Start Free Protection
+        </a>
+        <a
+          href="#features"
+          class="btn btn-outline"
+          style="font-size: 1.125rem; padding: 1rem 2rem"
+        >
+          <i class="fas fa-play-circle"></i> See How It Works
+        </a>
+      </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+      <h2 class="section-title">Powerful Security Features</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-user-shield"></i>
+          </div>
+          <h3 class="feature-title">Secure Authentication</h3>
+          <p class="feature-desc">
+            Multi-factor authentication and secure login to protect your account
+            from unauthorized access.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-search"></i>
+          </div>
+          <h3 class="feature-title">Device Scanning</h3>
+          <p class="feature-desc">
+            Comprehensive scanning of your device for malware, vulnerabilities,
+            and suspicious activities.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-eye"></i>
+          </div>
+          <h3 class="feature-title">Continuous Monitoring</h3>
+          <p class="feature-desc">
+            24/7 monitoring of processes, network connections, and system
+            changes in real-time.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-robot"></i>
+          </div>
+          <h3 class="feature-title">AI Threat Detection</h3>
+          <p class="feature-desc">
+            Advanced machine learning algorithms to detect and classify threats
+            with high accuracy.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-bell"></i>
+          </div>
+          <h3 class="feature-title">Real-time Alerts</h3>
+          <p class="feature-desc">
+            Instant notifications when threats are detected, with detailed
+            information and mitigation steps.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon">
+            <i class="fas fa-chart-line"></i>
+          </div>
+          <h3 class="feature-title">Security Analytics</h3>
+          <p class="feature-desc">
+            Detailed reports and visual analytics to understand your security
+            posture and trends.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="features" id="how-it-works" style="background: transparent">
+      <h2 class="section-title">How ThreatVisualizer Works</h2>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div
+            class="feature-icon"
+            style="background: linear-gradient(135deg, #8b5cf6, #ec4899)"
+          >
+            <i class="fas fa-user-plus"></i>
+          </div>
+          <h3 class="feature-title">1. Register & Login</h3>
+          <p class="feature-desc">
+            Create your secure account with email verification and strong
+            password requirements.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div
+            class="feature-icon"
+            style="background: linear-gradient(135deg, #f59e0b, #ef4444)"
+          >
+            <i class="fas fa-handshake"></i>
+          </div>
+          <h3 class="feature-title">2. Grant Device Consent</h3>
+          <p class="feature-desc">
+            Provide permission for the system to scan your device and monitor
+            for threats.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div
+            class="feature-icon"
+            style="background: linear-gradient(135deg, #10b981, #3b82f6)"
+          >
+            <i class="fas fa-search"></i>
+          </div>
+          <h3 class="feature-title">3. Initial Scan</h3>
+          <p class="feature-desc">
+            Comprehensive scan of your device to establish baseline security and
+            detect existing threats.
+          </p>
+        </div>
+
+        <div class="feature-card">
+          <div
+            class="feature-icon"
+            style="background: linear-gradient(135deg, #3b82f6, #06b6d4)"
+          >
+            <i class="fas fa-shield-alt"></i>
+          </div>
+          <h3 class="feature-title">4. Continuous Protection</h3>
+          <p class="feature-desc">
+            24/7 monitoring with real-time threat detection, alerts, and
+            automatic mitigation.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+      <div class="cta-box">
+        <h2 class="cta-title">Ready to Secure Your Device?</h2>
+        <p class="cta-text">
+          Join thousands of users who trust ThreatVisualizer for comprehensive
+          device protection and threat detection.
+        </p>
+        <a
+          href="/register"
+          class="btn btn-primary"
+          style="font-size: 1.125rem; padding: 1rem 2rem"
+        >
+          <i class="fas fa-shield-alt"></i> Start Your Free Protection Now
+        </a>
+        <p
+          style="
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: var(--text-muted);
+          "
+        >
+          No credit card required • 30-day free trial
+        </p>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="footer-links">
+        <a href="/privacy" class="footer-link">Privacy Policy</a>
+        <a href="/terms" class="footer-link">Terms of Service</a>
+        <a href="/contact" class="footer-link">Contact Us</a>
+        <a href="/about" class="footer-link">About</a>
+      </div>
+      <div class="logo" style="justify-content: center; margin-bottom: 1rem">
+        <i class="fas fa-shield-alt"></i>
+        <span>ThreatVisualizer</span>
+      </div>
+      <p class="copyright">
+        © 2025 ThreatVisualizer. All rights reserved.<br />
+        Advanced Threat Detection System for Modern Devices
+      </p>
+    </footer>
+
+    <script>
+      // Smooth scrolling for anchor links
+      document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+        anchor.addEventListener("click", function (e) {
+          e.preventDefault();
+          const targetId = this.getAttribute("href");
+          if (targetId === "#") return;
+
+          const targetElement = document.querySelector(targetId);
+          if (targetElement) {
+            window.scrollTo({
+              top: targetElement.offsetTop - 80,
+              behavior: "smooth",
+            });
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

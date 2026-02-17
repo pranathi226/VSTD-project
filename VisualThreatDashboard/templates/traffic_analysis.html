@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+{% block title %}Traffic Analysis{% endblock %}
+
+{% block extra_head %}
+<style>
+    .ta-card{background:rgba(26,60,110,.55);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:22px;margin-bottom:20px}
+    .ta-stat{text-align:center;padding:18px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px}
+    .ta-stat .val{font-size:28px;font-weight:700;line-height:1.1}.ta-stat .lbl{font-size:11px;color:#6b7d99;text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+    .chart-box{position:relative;width:100%}
+    .conn-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:6px;font-size:13px;transition:background .2s}
+    .conn-item:hover{background:rgba(255,255,255,.08)}
+    .conn-dot{width:8px;height:8px;border-radius:50%}
+    .conn-dot.est{background:#2a9d8f}.conn-dot.listen{background:#00b4d8}.conn-dot.other{background:#6b7d99}
+    .mono{font-family:'Courier New',monospace;font-size:13px}
+    .port-badge{background:rgba(0,180,216,.12);color:#00b4d8;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+    .proto-badge{background:rgba(255,209,102,.12);color:#ffd166;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+    .traffic-bar{height:6px;border-radius:3px;background:rgba(255,255,255,.06);flex:1;overflow:hidden}
+    .traffic-bar .fill-in{height:100%;border-radius:3px;background:#00b4d8}
+    .traffic-bar .fill-out{height:100%;border-radius:3px;background:#f77f00}
+    .live-dot{width:10px;height:10px;border-radius:50%;background:#2a9d8f;display:inline-block;animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .btn-sm-act{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#f8f9fa;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px;transition:all .2s;display:inline-flex;align-items:center;gap:4px}
+    .btn-sm-act:hover{background:rgba(0,180,216,.15);border-color:#00b4d8}
+    .btn-sm-danger{background:rgba(230,57,70,.12);border:1px solid rgba(230,57,70,.25);color:#e63946;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:4px}
+    .btn-sm-danger:hover{background:rgba(230,57,70,.25)}
+    .drawer-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:2000;display:none}
+    .drawer-overlay.open{display:block}
+    .detail-drawer{position:fixed;top:0;right:-480px;width:460px;height:100vh;background:linear-gradient(180deg,#0f2847,#0a1931);border-left:1px solid rgba(255,255,255,.1);z-index:2001;transition:right .3s;overflow-y:auto;padding:28px}
+    .detail-drawer.open{right:0}
+    .detail-field{margin-bottom:14px}.detail-label{font-size:11px;color:#6b7d99;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.detail-value{font-size:14px}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1"><i class="bi bi-graph-up me-2"></i>Network Traffic Analysis</h4>
+        <p class="text-muted mb-0">Real-time network connections, bandwidth usage, and port monitoring</p>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+        <span class="live-dot me-1"></span><span style="font-size:13px;color:#2a9d8f">Live</span>
+        <button class="btn-action ms-2" onclick="refreshTraffic()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="row mb-4">
+    <div class="col-lg-2 col-md-4 col-6 mb-3"><div class="ta-stat"><div class="val" style="color:#00b4d8" id="tActiveConn">--</div><div class="lbl">Active Connections</div></div></div>
+    <div class="col-lg-2 col-md-4 col-6 mb-3"><div class="ta-stat"><div class="val" style="color:#2a9d8f" id="tEstablished">--</div><div class="lbl">Established</div></div></div>
+    <div class="col-lg-2 col-md-4 col-6 mb-3"><div class="ta-stat"><div class="val" style="color:#ffd166" id="tListening">--</div><div class="lbl">Listening</div></div></div>
+    <div class="col-lg-2 col-md-4 col-6 mb-3"><div class="ta-stat"><div class="val" style="color:#f77f00" id="tSuspPorts">--</div><div class="lbl">Suspicious Ports</div></div></div>
+    <div class="col-lg-2 col-md-4 col-6 mb-3"><div class="ta-stat"><div class="val" style="color:#00b4d8" id="tBandIn">--</div><div class="lbl">Bytes Recv</div></div></div>
+    <div class="col-lg-2 col-md-4 col-6 mb-3"><div class="ta-stat"><div class="val" style="color:#f77f00" id="tBandOut">--</div><div class="lbl">Bytes Sent</div></div></div>
+</div>
+
+<div class="row">
+    <!-- Bandwidth Chart -->
+    <div class="col-lg-8">
+        <div class="ta-card">
+            <h6 class="mb-3"><i class="bi bi-speedometer me-2"></i>System Metrics Timeline</h6>
+            <div class="chart-box" style="height:300px"><canvas id="metricsChart"></canvas></div>
+        </div>
+    </div>
+    <!-- Port Distribution -->
+    <div class="col-lg-4">
+        <div class="ta-card">
+            <h6 class="mb-3"><i class="bi bi-hdd-network me-2"></i>Port Distribution</h6>
+            <div class="chart-box" style="height:300px"><canvas id="portChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Connection Status -->
+    <div class="col-lg-4">
+        <div class="ta-card">
+            <h6 class="mb-3"><i class="bi bi-diagram-3 me-2"></i>Connection States</h6>
+            <div class="chart-box" style="height:250px"><canvas id="connStateChart"></canvas></div>
+        </div>
+    </div>
+    <!-- Active Connections -->
+    <div class="col-lg-8">
+        <div class="ta-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0"><i class="bi bi-list-ul me-2"></i>Active Connections</h6>
+                <span class="text-muted" style="font-size:12px" id="connCount">-- connections</span>
+            </div>
+            <div id="connList" style="max-height:400px;overflow-y:auto">
+                <div class="text-center text-muted py-4">Loading connections...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Network Threats -->
+<div class="ta-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="mb-0"><i class="bi bi-shield-exclamation me-2"></i>Network-Related Threats</h6>
+        <span class="text-muted" style="font-size:12px" id="netThreatCount">--</span>
+    </div>
+    <div id="netThreats"><div class="text-center text-muted py-3">Loading...</div></div>
+</div>
+
+<!-- Detail Drawer -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="detail-drawer" id="detailDrawer">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Threat Details</h5>
+        <button class="btn-sm-act" onclick="closeDrawer()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div id="drawerContent"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let metricsChart=null, portChart=null, connStateChart=null, refreshTimer=null;
+const SUSP_PORTS=[22,23,3389,5900,5901,4444,6667,31337];
+
+document.addEventListener('DOMContentLoaded',()=>{refreshTraffic();refreshTimer=setInterval(refreshTraffic,15000)});
+
+function refreshTraffic(){
+    Promise.all([
+        fetch('/api/dashboard-data').then(r=>r.json()),
+        fetchConnections()
+    ]).then(([dashData, conns])=>{
+        if(dashData.success){
+            renderMetricsChart(dashData.system_metrics);
+            renderNetworkThreats(dashData.recent_threats);
+        }
+        renderConnections(conns);
+    }).catch(console.error);
+}
+
+function fetchConnections(){
+    // Use dashboard data for connection info; also gather live data
+    return new Promise(resolve=>{
+        fetch('/api/dashboard-data').then(r=>r.json()).then(data=>{
+            if(!data.success){resolve([]);return;}
+            // Build connection-like entries from threat data
+            const threats=data.recent_threats||[];
+            const networkThreats=threats.filter(t=>(t.category||'').toLowerCase()==='network');
+            const conns=networkThreats.map(t=>({
+                local:t.source_ip||'0.0.0.0',
+                remote:t.destination_ip||'0.0.0.0',
+                port:t.port||0,
+                status:'ESTABLISHED',
+                process:t.process_name||'unknown'
+            }));
+            resolve(conns);
+        }).catch(()=>resolve([]));
+    });
+}
+
+function renderConnections(conns){
+    // Stats
+    const established=conns.filter(c=>c.status==='ESTABLISHED').length;
+    const listening=conns.filter(c=>c.status==='LISTEN').length;
+    const suspicious=conns.filter(c=>SUSP_PORTS.includes(c.port)).length;
+
+    document.getElementById('tActiveConn').textContent=conns.length;
+    document.getElementById('tEstablished').textContent=established;
+    document.getElementById('tListening').textContent=listening||0;
+    document.getElementById('tSuspPorts').textContent=suspicious;
+
+    // Bandwidth (use psutil-based data from system_metrics)
+    const netIO=window._lastNetIO||{recv:0,sent:0};
+    document.getElementById('tBandIn').textContent=formatBytes(netIO.recv);
+    document.getElementById('tBandOut').textContent=formatBytes(netIO.sent);
+
+    // Connection list
+    document.getElementById('connCount').textContent=conns.length+' connections';
+    const box=document.getElementById('connList');
+    if(!conns.length){box.innerHTML='<div class="text-center text-muted py-3">No active network connections detected.</div>';renderConnState({});renderPortChart({});return;}
+
+    box.innerHTML=conns.map(c=>{
+        const isSusp=SUSP_PORTS.includes(c.port);
+        const dotClass=c.status==='ESTABLISHED'?'est':c.status==='LISTEN'?'listen':'other';
+        return `<div class="conn-item">
+            <span class="conn-dot ${dotClass}"></span>
+            <span class="mono" style="min-width:130px">${c.local}</span>
+            <i class="bi bi-arrow-right" style="color:#6b7d99"></i>
+            <span class="mono" style="min-width:130px">${c.remote}</span>
+            <span class="port-badge ${isSusp?'style="background:rgba(230,57,70,.15);color:#e63946"':''}">:${c.port}</span>
+            <span style="color:#6b7d99;font-size:12px">${c.status}</span>
+            <span class="ms-auto" style="font-size:12px;color:#adb5bd">${c.process}</span>
+        </div>`;
+    }).join('');
+
+    // Port chart data
+    const portCounts={};
+    conns.forEach(c=>{const p=c.port||0; portCounts[p]=(portCounts[p]||0)+1;});
+    renderPortChart(portCounts);
+
+    // Connection state chart
+    const stateCounts={};
+    conns.forEach(c=>{stateCounts[c.status]=(stateCounts[c.status]||0)+1;});
+    renderConnState(stateCounts);
+}
+
+function renderMetricsChart(metrics){
+    const ctx=document.getElementById('metricsChart').getContext('2d');
+    if(metricsChart) metricsChart.destroy();
+    if(!metrics||!metrics.length){
+        metricsChart=new Chart(ctx,{type:'line',data:{labels:[],datasets:[]},options:{responsive:true,maintainAspectRatio:false}});
+        return;
+    }
+    // Store network IO for stats
+    window._lastNetIO={recv:0,sent:0};
+
+    const labels=metrics.map(m=>{try{return new Date(m.timestamp).toLocaleTimeString()}catch(e){return''}});
+    metricsChart=new Chart(ctx,{
+        type:'line',
+        data:{
+            labels,
+            datasets:[
+                {label:'CPU %',data:metrics.map(m=>m.cpu),borderColor:'#00b4d8',backgroundColor:'rgba(0,180,216,.08)',fill:true,tension:.4,pointRadius:1,borderWidth:2},
+                {label:'Memory %',data:metrics.map(m=>m.memory),borderColor:'#f77f00',backgroundColor:'rgba(247,127,0,.08)',fill:true,tension:.4,pointRadius:1,borderWidth:2},
+                {label:'Disk %',data:metrics.map(m=>m.disk),borderColor:'#2a9d8f',backgroundColor:'rgba(42,157,143,.08)',fill:true,tension:.4,pointRadius:1,borderWidth:2}
+            ]
+        },
+        options:{
+            responsive:true,maintainAspectRatio:false,
+            plugins:{legend:{position:'top',labels:{color:'rgba(255,255,255,.7)',usePointStyle:true,padding:15}}},
+            scales:{
+                x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'rgba(255,255,255,.5)',maxTicksLimit:10}},
+                y:{beginAtZero:true,max:100,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'rgba(255,255,255,.5)',callback:v=>v+'%'}}
+            }
+        }
+    });
+}
+
+function renderPortChart(portCounts){
+    const ctx=document.getElementById('portChart').getContext('2d');
+    if(portChart) portChart.destroy();
+    const entries=Object.entries(portCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const colors=['#00b4d8','#e63946','#f77f00','#2a9d8f','#ffd166','#8338ec','#ff006e','#3a86a7'];
+    portChart=new Chart(ctx,{
+        type:'bar',
+        data:{labels:entries.map(e=>':'+e[0]),datasets:[{data:entries.map(e=>e[1]),backgroundColor:entries.map((_,i)=>colors[i%colors.length]+'99'),borderColor:entries.map((_,i)=>colors[i%colors.length]),borderWidth:1,borderRadius:6}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'rgba(255,255,255,.6)'}},y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'rgba(255,255,255,.5)',stepSize:1}}}}
+    });
+}
+
+function renderConnState(states){
+    const ctx=document.getElementById('connStateChart').getContext('2d');
+    if(connStateChart) connStateChart.destroy();
+    const labels=Object.keys(states);
+    const vals=Object.values(states);
+    const colors={'ESTABLISHED':'#2a9d8f','LISTEN':'#00b4d8','TIME_WAIT':'#ffd166','CLOSE_WAIT':'#f77f00','SYN_SENT':'#e63946'};
+    connStateChart=new Chart(ctx,{
+        type:'doughnut',
+        data:{labels,datasets:[{data:vals,backgroundColor:labels.map(l=>(colors[l]||'#6b7d99')+'cc'),borderWidth:0}]},
+        options:{responsive:true,maintainAspectRatio:false,cutout:'55%',plugins:{legend:{position:'bottom',labels:{color:'rgba(255,255,255,.7)',padding:10,usePointStyle:true,font:{size:11}}}}}
+    });
+}
+
+function renderNetworkThreats(threats){
+    const net=threats.filter(t=>(t.category||'').toLowerCase()==='network');
+    document.getElementById('netThreatCount').textContent=net.length+' network threats';
+    const box=document.getElementById('netThreats');
+    if(!net.length){box.innerHTML='<div class="text-center text-muted py-3">No network threats detected.</div>';return;}
+    box.innerHTML=net.map(t=>{
+        const sev=(t.severity||'low').toLowerCase();
+        const badgeCls={'critical':'background:rgba(230,57,70,.18);color:#e63946','high':'background:rgba(247,127,0,.18);color:#f77f00','medium':'background:rgba(255,209,102,.18);color:#ffd166','low':'background:rgba(42,157,143,.18);color:#2a9d8f'}[sev]||'';
+        return `<div class="conn-item" style="border-left:3px solid ${sev==='critical'?'#e63946':sev==='high'?'#f77f00':sev==='medium'?'#ffd166':'#2a9d8f'}">
+            <span style="padding:3px 10px;border-radius:16px;font-size:11px;font-weight:600;${badgeCls}">${sev}</span>
+            <span style="font-weight:600">${t.threat_type||'Unknown'}</span>
+            <span class="mono" style="color:#6b7d99">${t.source_ip||''} → ${t.destination_ip||''}</span>
+            ${t.port?`<span class="port-badge">:${t.port}</span>`:''}
+            <button class="btn-sm-act" onclick="showDetail('${t.threat_id}')"><i class="bi bi-info-circle"></i></button>
+            ${(t.status||'').toLowerCase()!=='mitigated'?`<button class="btn-sm-act" onclick="mitigateThreat('${t.threat_id}','manual_mitigation')"><i class="bi bi-check-circle"></i></button>`:''}
+            ${t.source_ip&&(t.status||'').toLowerCase()!=='mitigated'?`<button class="btn-sm-danger" onclick="mitigateThreat('${t.threat_id}','block_ip')"><i class="bi bi-shield-x"></i></button>`:''}
+            <span class="ms-auto" style="font-size:11px;color:#6b7d99">${t.detected_at?new Date(t.detected_at).toLocaleString():'--'}</span>
+        </div>`;
+    }).join('');
+}
+
+function formatBytes(b){
+    if(!b||b===0) return '0 B';
+    const k=1024,s=['B','KB','MB','GB','TB'];
+    const i=Math.floor(Math.log(b)/Math.log(k));
+    return parseFloat((b/Math.pow(k,i)).toFixed(1))+' '+s[i];
+}
+
+function showDetail(threatId){
+    fetch(`/api/threats/${threatId}/details`).then(r=>r.json()).then(data=>{
+        if(!data.success) return;
+        const t=data.threat, related=data.related_threats||[];
+        const sev=(t.severity||'low').toLowerCase(), status=(t.status||'detected').toLowerCase();
+        let html=`<div class="d-flex gap-2 mb-3"><span style="padding:3px 10px;border-radius:16px;font-size:11px;font-weight:600;background:${sev==='critical'?'rgba(230,57,70,.18)':sev==='high'?'rgba(247,127,0,.18)':sev==='medium'?'rgba(255,209,102,.18)':'rgba(42,157,143,.18)'};color:${sev==='critical'?'#e63946':sev==='high'?'#f77f00':sev==='medium'?'#ffd166':'#2a9d8f'}">${sev}</span><span style="padding:3px 10px;border-radius:16px;font-size:11px;font-weight:600;background:${status==='mitigated'?'rgba(42,157,143,.18)':'rgba(230,57,70,.18)'};color:${status==='mitigated'?'#2a9d8f':'#e63946'}">${status}</span></div>
+            <h5 style="font-weight:700;margin-bottom:18px">${t.threat_type||'Unknown'}</h5>
+            <div class="detail-field"><div class="detail-label">Threat ID</div><div class="detail-value mono">${t.threat_id||'--'}</div></div>
+            <div class="detail-field"><div class="detail-label">Description</div><div class="detail-value">${t.description||'--'}</div></div>
+            <div class="detail-field"><div class="detail-label">Category</div><div class="detail-value" style="text-transform:capitalize">${t.category||'--'}</div></div>
+            <div class="row"><div class="col-6"><div class="detail-field"><div class="detail-label">Source IP</div><div class="detail-value mono">${t.source_ip||'--'}</div></div></div><div class="col-6"><div class="detail-field"><div class="detail-label">Dest IP</div><div class="detail-value mono">${t.destination_ip||'--'}</div></div></div></div>
+            <div class="row"><div class="col-6"><div class="detail-field"><div class="detail-label">Port</div><div class="detail-value mono">${t.port||'--'}</div></div></div><div class="col-6"><div class="detail-field"><div class="detail-label">Process</div><div class="detail-value mono">${t.process_name||'--'}</div></div></div></div>
+            <div class="detail-field"><div class="detail-label">File Path</div><div class="detail-value mono">${t.file_path||'--'}</div></div>
+            <div class="row"><div class="col-6"><div class="detail-field"><div class="detail-label">Detected</div><div class="detail-value">${t.detected_at?new Date(t.detected_at).toLocaleString():'--'}</div></div></div><div class="col-6"><div class="detail-field"><div class="detail-label">Resolved</div><div class="detail-value">${t.resolved_at?new Date(t.resolved_at).toLocaleString():'--'}</div></div></div></div>`;
+        if(status==='detected'){
+            html+=`<div style="border-top:1px solid rgba(255,255,255,.1);padding-top:16px;margin-top:8px"><div class="detail-label mb-2">Actions</div><div class="d-flex gap-2 flex-wrap">
+                ${t.process_name?`<button class="btn-sm-danger" onclick="mitigateThreat('${t.threat_id}','kill_process')"><i class="bi bi-x-octagon"></i> Kill Process</button>`:''}
+                ${t.source_ip?`<button class="btn-sm-danger" onclick="mitigateThreat('${t.threat_id}','block_ip')"><i class="bi bi-shield-x"></i> Block IP</button>`:''}
+                ${t.port?`<button class="btn-sm-danger" onclick="mitigateThreat('${t.threat_id}','close_port')"><i class="bi bi-hdd-network"></i> Close Port</button>`:''}
+                <button class="btn-sm-act" onclick="mitigateThreat('${t.threat_id}','manual_mitigation')"><i class="bi bi-check-circle"></i> Mark Mitigated</button>
+            </div></div>`;
+        }
+        if(related.length){
+            html+=`<div style="border-top:1px solid rgba(255,255,255,.1);padding-top:16px;margin-top:16px"><div class="detail-label mb-2">Related Threats (${related.length})</div>`;
+            related.forEach(r=>{
+                html+=`<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:10px 12px;margin-bottom:6px;cursor:pointer" onclick="showDetail('${r.threat_id}')">
+                    <div class="d-flex align-items-center gap-2"><span style="padding:2px 8px;border-radius:12px;font-size:10px;font-weight:600;background:rgba(0,180,216,.15);color:#00b4d8">${r.severity}</span><span>${r.threat_type||'Unknown'}</span></div>
+                    <div style="font-size:12px;color:#6b7d99;margin-top:2px">${r.source_ip||''} \u2192 ${r.destination_ip||''}</div>
+                </div>`;
+            });
+            html+='</div>';
+        }
+        document.getElementById('drawerContent').innerHTML=html;
+        document.getElementById('detailDrawer').classList.add('open');
+        document.getElementById('drawerOverlay').classList.add('open');
+    }).catch(e=>console.error('Detail fetch failed:',e));
+}
+
+function closeDrawer(){
+    document.getElementById('detailDrawer').classList.remove('open');
+    document.getElementById('drawerOverlay').classList.remove('open');
+}
+
+function mitigateThreat(threatId,action){
+    fetch(`/api/threats/mitigate/${threatId}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})})
+    .then(r=>r.json()).then(d=>{if(d.success){closeDrawer();refreshTraffic();}else alert('Mitigation failed: '+d.message);}).catch(e=>alert('Error: '+e));
+}
+</script>
+{% endblock %}

@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}Global Threat Intelligence{% endblock %}
+
+{% block extra_head %}
+<style>
+    .globe-card{background:rgba(26,60,110,.55);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:22px;margin-bottom:20px}
+    .feed-item{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-left:4px solid;border-radius:10px;padding:16px 18px;margin-bottom:10px;transition:all .25s}
+    .feed-item:hover{background:rgba(255,255,255,.08);transform:translateX(4px)}
+    .feed-item.sev-critical{border-left-color:#e63946}.feed-item.sev-high{border-left-color:#f77f00}.feed-item.sev-medium{border-left-color:#ffd166}.feed-item.sev-low{border-left-color:#2a9d8f}
+    .badge-sev{padding:3px 10px;border-radius:16px;font-size:11px;font-weight:600;text-transform:uppercase}
+    .badge-critical{background:rgba(230,57,70,.18);color:#e63946}.badge-high{background:rgba(247,127,0,.18);color:#f77f00}.badge-medium{background:rgba(255,209,102,.18);color:#ffd166}.badge-low{background:rgba(42,157,143,.18);color:#2a9d8f}
+    .globe-stat{text-align:center;padding:18px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px}
+    .globe-stat .val{font-size:30px;font-weight:700;line-height:1.1}.globe-stat .lbl{font-size:11px;color:#6b7d99;text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+    .chart-box{position:relative;height:300px;width:100%}
+    .feed-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+    .feed-pill{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#adb5bd;padding:5px 14px;border-radius:18px;font-size:13px;cursor:pointer;transition:all .25s}
+    .feed-pill:hover,.feed-pill.active{background:rgba(0,180,216,.15);border-color:#00b4d8;color:#00b4d8}
+    .region-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:6px}
+    .region-bar{height:6px;border-radius:3px;background:rgba(0,180,216,.3);flex:1;margin:0 12px;position:relative;overflow:hidden}
+    .region-bar .fill{height:100%;border-radius:3px;background:#00b4d8;transition:width .6s}
+    .threat-source-tag{display:inline-flex;align-items:center;gap:4px;background:rgba(0,180,216,.1);border:1px solid rgba(0,180,216,.25);padding:2px 10px;border-radius:12px;font-size:11px;color:#00b4d8;margin:2px}
+    .btn-sm-act{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#f8f9fa;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px;transition:all .2s;display:inline-flex;align-items:center;gap:4px}
+    .btn-sm-act:hover{background:rgba(0,180,216,.15);border-color:#00b4d8}
+    .btn-sm-danger{background:rgba(230,57,70,.12);border:1px solid rgba(230,57,70,.25);color:#e63946;padding:5px 12px;border-radius:8px;cursor:pointer;font-size:12px;display:inline-flex;align-items:center;gap:4px}
+    .btn-sm-danger:hover{background:rgba(230,57,70,.25)}
+    .drawer-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);z-index:2000;display:none}
+    .drawer-overlay.open{display:block}
+    .detail-drawer{position:fixed;top:0;right:-480px;width:460px;height:100vh;background:linear-gradient(180deg,#0f2847,#0a1931);border-left:1px solid rgba(255,255,255,.1);z-index:2001;transition:right .3s;overflow-y:auto;padding:28px}
+    .detail-drawer.open{right:0}
+    .detail-field{margin-bottom:14px}.detail-label{font-size:11px;color:#6b7d99;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}.detail-value{font-size:14px}
+    .mono{font-family:'Courier New',monospace;font-size:13px}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1"><i class="bi bi-globe me-2"></i>Global Threat Intelligence</h4>
+        <p class="text-muted mb-0">Real-time threat feed aggregated from your monitoring data</p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn-action" onclick="refreshFeed()"><i class="bi bi-arrow-clockwise me-1"></i> Refresh</button>
+    </div>
+</div>
+
+<!-- Stats -->
+<div class="row mb-4" id="globalStats">
+    <div class="col-lg-2 col-md-4 col-6 mb-3"><div class="globe-stat"><div class="val" style="color:#00b4d8" id="gTotal">--</div><div class="lbl">Total Threats</div></div></div>
+    <div class="col-lg-2 col-md-4 col-6 mb-3"><div class="globe-stat"><div class="val" style="color:#e63946" id="gCritical">--</div><div class="lbl">Critical</div></div></div>
+    <div class="col-lg-2 col-md-4 col-6 mb-3"><div class="globe-stat"><div class="val" style="color:#f77f00" id="gHigh">--</div><div class="lbl">High</div></div></div>
+    <div class="col-lg-2 col-md-4 col-6 mb-3"><div class="globe-stat"><div class="val" style="color:#ffd166" id="gMedium">--</div><div class="lbl">Medium</div></div></div>
+    <div class="col-lg-2 col-md-4 col-6 mb-3"><div class="globe-stat"><div class="val" style="color:#2a9d8f" id="gLow">--</div><div class="lbl">Low</div></div></div>
+    <div class="col-lg-2 col-md-4 col-6 mb-3"><div class="globe-stat"><div class="val" style="color:#2a9d8f" id="gMitigated">--</div><div class="lbl">Mitigated</div></div></div>
+</div>
+
+<div class="row">
+    <!-- Threat Feed -->
+    <div class="col-lg-8">
+        <div class="globe-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0"><i class="bi bi-rss me-2"></i>Live Threat Feed</h6>
+                <span class="text-muted" style="font-size:13px" id="feedCount">-- threats</span>
+            </div>
+            <div class="feed-filter">
+                <span class="feed-pill active" data-f="all" onclick="filterFeed(this)">All</span>
+                <span class="feed-pill" data-f="critical" onclick="filterFeed(this)">Critical</span>
+                <span class="feed-pill" data-f="high" onclick="filterFeed(this)">High</span>
+                <span class="feed-pill" data-f="medium" onclick="filterFeed(this)">Medium</span>
+                <span class="feed-pill" data-f="low" onclick="filterFeed(this)">Low</span>
+                <span class="feed-pill" data-f="malware" onclick="filterFeed(this)">Malware</span>
+                <span class="feed-pill" data-f="network" onclick="filterFeed(this)">Network</span>
+                <span class="feed-pill" data-f="system" onclick="filterFeed(this)">System</span>
+                <span class="feed-pill" data-f="data" onclick="filterFeed(this)">Data</span>
+            </div>
+            <div id="feedList" style="max-height:520px;overflow-y:auto">
+                <div class="text-center text-muted py-5">Loading threat feed...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Side Panels -->
+    <div class="col-lg-4">
+        <!-- Category Distribution -->
+        <div class="globe-card">
+            <h6 class="mb-3"><i class="bi bi-pie-chart me-2"></i>Category Breakdown</h6>
+            <div class="chart-box" style="height:220px"><canvas id="catChart"></canvas></div>
+        </div>
+
+        <!-- Top Source IPs -->
+        <div class="globe-card">
+            <h6 class="mb-3"><i class="bi bi-geo-alt me-2"></i>Top Attacking IPs</h6>
+            <div id="topIPs"><div class="text-muted text-center py-3" style="font-size:13px">Loading...</div></div>
+        </div>
+
+        <!-- Severity over Time -->
+        <div class="globe-card">
+            <h6 class="mb-3"><i class="bi bi-graph-up me-2"></i>Threat Trend</h6>
+            <div class="chart-box" style="height:200px"><canvas id="trendChart"></canvas></div>
+        </div>
+    </div>
+</div>
+
+<!-- Detail Drawer -->
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="detail-drawer" id="detailDrawer">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Threat Details</h5>
+        <button class="btn-sm-act" onclick="closeDrawer()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div id="drawerContent"></div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let allThreats=[], catChart=null, trendChart=null, activeFeedFilter='all';
+
+document.addEventListener('DOMContentLoaded', refreshFeed);
+
+function refreshFeed(){
+    fetch('/api/dashboard-data').then(r=>r.json()).then(data=>{
+        if(!data.success) return;
+        allThreats = data.recent_threats||[];
+        const s=data.threat_stats;
+        document.getElementById('gTotal').textContent=s.total||0;
+        document.getElementById('gCritical').textContent=s.critical||0;
+        document.getElementById('gHigh').textContent=s.high||0;
+        document.getElementById('gMedium').textContent=s.medium||0;
+        document.getElementById('gLow').textContent=s.low||0;
+        document.getElementById('gMitigated').textContent=s.mitigated||0;
+        renderFeed();
+        renderCatChart(data.categories);
+        renderTrend(data.timeline);
+        renderTopIPs(data.source_ips);
+    });
+}
+
+function filterFeed(el){
+    document.querySelectorAll('.feed-pill').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+    activeFeedFilter=el.dataset.f;
+    renderFeed();
+}
+
+function renderFeed(){
+    let list=[...allThreats];
+    if(activeFeedFilter!=='all'){
+        list=list.filter(t=>{
+            const s=(t.severity||'').toLowerCase(), c=(t.category||'').toLowerCase();
+            return s===activeFeedFilter||c===activeFeedFilter;
+        });
+    }
+    document.getElementById('feedCount').textContent=list.length+' threats';
+    const box=document.getElementById('feedList');
+    if(!list.length){box.innerHTML='<div class="text-center text-muted py-4">No threats match this filter.</div>';return;}
+    box.innerHTML=list.map(t=>{
+        const sev=(t.severity||'low').toLowerCase();
+        const time=t.detected_at?new Date(t.detected_at).toLocaleString():'--';
+        return `<div class="feed-item sev-${sev}">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <span class="badge-sev badge-${sev}">${sev}</span>
+                        ${t.category?`<span class="threat-source-tag">${t.category}</span>`:''}
+                    </div>
+                    <div style="font-weight:600;font-size:14px" class="mb-1">${t.threat_type||'Unknown'}</div>
+                    <div style="color:#adb5bd;font-size:13px">${t.description||''}</div>
+                    <div class="d-flex gap-3 mt-1" style="font-size:12px;color:#6b7d99">
+                        ${t.source_ip?`<span><i class="bi bi-geo-alt me-1"></i>${t.source_ip}</span>`:''}
+                        ${t.destination_ip?`<span><i class="bi bi-bullseye me-1"></i>${t.destination_ip}</span>`:''}
+                        ${t.port?`<span><i class="bi bi-hdd-network me-1"></i>:${t.port}</span>`:''}
+                        ${t.process_name?`<span><i class="bi bi-cpu me-1"></i>${t.process_name}</span>`:''}
+                    </div>
+                    <div class="d-flex gap-1 mt-2">
+                        <button class="btn-sm-act" onclick="event.stopPropagation();showDetail('${t.threat_id}')"><i class="bi bi-info-circle"></i> Details</button>
+                        ${(t.status||'').toLowerCase()!=='mitigated'?`<button class="btn-sm-act" onclick="event.stopPropagation();mitigateThreat('${t.threat_id}','manual_mitigation')"><i class="bi bi-check-circle"></i> Mitigate</button>`:''}
+                        ${t.source_ip&&(t.status||'').toLowerCase()!=='mitigated'?`<button class="btn-sm-danger" onclick="event.stopPropagation();mitigateThreat('${t.threat_id}','block_ip')"><i class="bi bi-shield-x"></i> Block IP</button>`:''}
+                    </div>
+                </div>
+                <div style="white-space:nowrap;font-size:11px;color:#6b7d99"><i class="bi bi-clock me-1"></i>${time}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderCatChart(cats){
+    const ctx=document.getElementById('catChart').getContext('2d');
+    if(catChart) catChart.destroy();
+    const colors=['#00b4d8','#e63946','#f77f00','#2a9d8f','#ffd166','#8338ec','#ff006e'];
+    catChart=new Chart(ctx,{type:'doughnut',data:{labels:cats.map(c=>c.name),datasets:[{data:cats.map(c=>c.value),backgroundColor:cats.map((_,i)=>colors[i%colors.length]+'cc'),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{position:'bottom',labels:{color:'rgba(255,255,255,.7)',padding:10,usePointStyle:true,font:{size:11}}}}}});
+}
+
+function renderTrend(timeline){
+    const ctx=document.getElementById('trendChart').getContext('2d');
+    if(trendChart) trendChart.destroy();
+    trendChart=new Chart(ctx,{type:'line',data:{labels:timeline.map(t=>{try{return new Date(t.date).toLocaleDateString('en-US',{month:'short',day:'numeric'})}catch(e){return t.date}}),datasets:[{data:timeline.map(t=>t.threats),borderColor:'#00b4d8',backgroundColor:'rgba(0,180,216,.1)',fill:true,tension:.4,pointRadius:3,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'rgba(255,255,255,.5)',font:{size:10}}},y:{beginAtZero:true,grid:{color:'rgba(255,255,255,.05)'},ticks:{color:'rgba(255,255,255,.5)',stepSize:1}}}}});
+}
+
+function renderTopIPs(ips){
+    const box=document.getElementById('topIPs');
+    if(!ips||!ips.length){box.innerHTML='<div class="text-muted text-center py-3" style="font-size:13px">No data</div>';return;}
+    const max=Math.max(...ips.map(i=>i.count));
+    box.innerHTML=ips.map(ip=>`<div class="region-item">
+        <span style="font-family:'Courier New',monospace;font-size:13px;min-width:120px">${ip.ip}</span>
+        <div class="region-bar"><div class="fill" style="width:${(ip.count/max*100).toFixed(0)}%"></div></div>
+        <span style="font-size:12px;color:#00b4d8;font-weight:600">${ip.count}</span>
+    </div>`).join('');
+}
+
+function showDetail(threatId){
+    fetch(`/api/threats/${threatId}/details`).then(r=>r.json()).then(data=>{
+        if(!data.success) return;
+        const t=data.threat, related=data.related_threats||[];
+        const sev=(t.severity||'low').toLowerCase(), status=(t.status||'detected').toLowerCase();
+        let html=`<div class="d-flex gap-2 mb-3"><span class="badge-sev badge-${sev}">${sev}</span><span class="badge-sev" style="background:${status==='mitigated'?'rgba(42,157,143,.18)':'rgba(230,57,70,.18)'};color:${status==='mitigated'?'#2a9d8f':'#e63946'}">${status}</span></div>
+            <h5 style="font-weight:700;margin-bottom:18px">${t.threat_type||'Unknown'}</h5>
+            <div class="detail-field"><div class="detail-label">Threat ID</div><div class="detail-value mono">${t.threat_id||'--'}</div></div>
+            <div class="detail-field"><div class="detail-label">Description</div><div class="detail-value">${t.description||'--'}</div></div>
+            <div class="detail-field"><div class="detail-label">Category</div><div class="detail-value" style="text-transform:capitalize">${t.category||'--'}</div></div>
+            <div class="row"><div class="col-6"><div class="detail-field"><div class="detail-label">Source IP</div><div class="detail-value mono">${t.source_ip||'--'}</div></div></div><div class="col-6"><div class="detail-field"><div class="detail-label">Dest IP</div><div class="detail-value mono">${t.destination_ip||'--'}</div></div></div></div>
+            <div class="row"><div class="col-6"><div class="detail-field"><div class="detail-label">Port</div><div class="detail-value mono">${t.port||'--'}</div></div></div><div class="col-6"><div class="detail-field"><div class="detail-label">Process</div><div class="detail-value mono">${t.process_name||'--'}</div></div></div></div>
+            <div class="detail-field"><div class="detail-label">File Path</div><div class="detail-value mono">${t.file_path||'--'}</div></div>
+            <div class="row"><div class="col-6"><div class="detail-field"><div class="detail-label">Detected</div><div class="detail-value">${t.detected_at?new Date(t.detected_at).toLocaleString():'--'}</div></div></div><div class="col-6"><div class="detail-field"><div class="detail-label">Resolved</div><div class="detail-value">${t.resolved_at?new Date(t.resolved_at).toLocaleString():'--'}</div></div></div></div>`;
+        if(status==='detected'){
+            html+=`<div style="border-top:1px solid rgba(255,255,255,.1);padding-top:16px;margin-top:8px"><div class="detail-label mb-2">Actions</div><div class="d-flex gap-2 flex-wrap">
+                ${t.process_name?'<button class="btn-sm-danger" onclick="mitigateThreat(\''+t.threat_id+'\',\'kill_process\')"><i class="bi bi-x-octagon"></i> Kill Process</button>':''}
+                ${t.source_ip?'<button class="btn-sm-danger" onclick="mitigateThreat(\''+t.threat_id+'\',\'block_ip\')"><i class="bi bi-shield-x"></i> Block IP</button>':''}
+                ${t.file_path?'<button class="btn-sm-danger" onclick="mitigateThreat(\''+t.threat_id+'\',\'quarantine_file\')"><i class="bi bi-file-earmark-lock"></i> Quarantine</button>':''}
+                <button class="btn-sm-act" onclick="mitigateThreat('${t.threat_id}','manual_mitigation')"><i class="bi bi-check-circle"></i> Mark Mitigated</button>
+            </div></div>`;
+        }
+        if(related.length){
+            html+=`<div style="border-top:1px solid rgba(255,255,255,.1);padding-top:16px;margin-top:16px"><div class="detail-label mb-2">Related Threats (${related.length})</div>`+related.map(r=>'<div style="background:rgba(255,255,255,.03);border-radius:8px;padding:10px 12px;margin-bottom:6px;cursor:pointer" onclick="showDetail(\''+r.threat_id+'\')"><div class="d-flex align-items-center gap-2"><span class="badge-sev badge-'+(r.severity||'low').toLowerCase()+'" style="font-size:10px">'+r.severity+'</span><span>'+(r.threat_type||'Unknown')+'</span></div><div style="font-size:12px;color:#6b7d99;margin-top:2px">'+(r.source_ip||'')+' → '+(r.destination_ip||'')+'</div></div>').join('')+'</div>';
+        }
+        document.getElementById('drawerContent').innerHTML=html;
+        document.getElementById('detailDrawer').classList.add('open');
+        document.getElementById('drawerOverlay').classList.add('open');
+    }).catch(e=>console.error('Detail fetch failed:',e));
+}
+
+function closeDrawer(){
+    document.getElementById('detailDrawer').classList.remove('open');
+    document.getElementById('drawerOverlay').classList.remove('open');
+}
+
+function mitigateThreat(threatId,action){
+    fetch(`/api/threats/mitigate/${threatId}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})})
+    .then(r=>r.json()).then(d=>{if(d.success){closeDrawer();refreshFeed();}else alert('Mitigation failed: '+d.message);}).catch(e=>alert('Error: '+e));
+}
+</script>
+{% endblock %}
