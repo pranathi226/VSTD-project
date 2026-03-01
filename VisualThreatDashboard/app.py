@@ -144,8 +144,8 @@ class RealTimeThreatDetector:
         self.monitoring_thread = None
         self.known_threats = set()
         self.suspicious_processes = [
-            'powershell.exe', 'cmd.exe', 'wscript.exe', 'cscript.exe',
-            'mshta.exe', 'regsvr32.exe', 'rundll32.exe', 'certutil.exe'
+            'wscript.exe', 'cscript.exe',
+            'mshta.exe', 'certutil.exe'
         ]
         
         # Threat patterns database
@@ -249,7 +249,7 @@ class RealTimeThreatDetector:
                         # Check if it's actually suspicious (not system process)
                         if proc.info['username'] and 'system' not in proc.info['username'].lower():
                             threat = {
-                                'threat_id': f'PROC-{proc_pid}-{int(time.time())}',
+                                'threat_id': f'PROC-{proc_name}-{proc_pid}',
                                 'threat_type': 'Suspicious Process',
                                 'category': 'system',
                                 'severity': 'medium',
@@ -265,7 +265,7 @@ class RealTimeThreatDetector:
                         for keyword in keywords:
                             if keyword in proc_name:
                                 threat = {
-                                    'threat_id': f'PATTERN-{pattern}-{proc_pid}',
+                                    'threat_id': f'PATTERN-{pattern}-{proc_name}-{proc_pid}',
                                     'threat_type': f'Potential {pattern.capitalize()}',
                                     'category': 'malware',
                                     'severity': 'high',
@@ -298,7 +298,7 @@ class RealTimeThreatDetector:
                         # Check suspicious ports
                         if remote_port in self.suspicious_ports:
                             threat = {
-                                'threat_id': f'PORT-{remote_port}-{int(time.time())}',
+                                'threat_id': f'PORT-{remote_ip}-{remote_port}',
                                 'threat_type': 'Suspicious Port Connection',
                                 'category': 'network',
                                 'severity': 'medium',
@@ -314,7 +314,7 @@ class RealTimeThreatDetector:
                         for suspicious_range in self.suspicious_ips:
                             if remote_ip.startswith(suspicious_range):
                                 threat = {
-                                    'threat_id': f'IP-{remote_ip}-{int(time.time())}',
+                                    'threat_id': f'IP-{remote_ip}-{remote_port}',
                                     'threat_type': 'Internal Network Scanning',
                                     'category': 'network',
                                     'severity': 'low',
@@ -344,7 +344,7 @@ class RealTimeThreatDetector:
             cpu_percent = psutil.cpu_percent(interval=1)
             if cpu_percent > 90:
                 threat = {
-                    'threat_id': f'CPU-ABUSE-{int(time.time())}',
+                    'threat_id': f'CPU-ABUSE-ACTIVE',
                     'threat_type': 'High CPU Usage',
                     'category': 'system',
                     'severity': 'medium',
@@ -355,9 +355,9 @@ class RealTimeThreatDetector:
             
             # Check memory usage
             memory_percent = psutil.virtual_memory().percent
-            if memory_percent > 90:
+            if memory_percent > 95:
                 threat = {
-                    'threat_id': f'MEM-ABUSE-{int(time.time())}',
+                    'threat_id': f'MEM-ABUSE-ACTIVE',
                     'threat_type': 'High Memory Usage',
                     'category': 'system',
                     'severity': 'medium',
@@ -396,7 +396,7 @@ class RealTimeThreatDetector:
                             for ext in ransomware_exts:
                                 if file.endswith(ext):
                                     threat = {
-                                        'threat_id': f'FILE-{file}-{int(time.time())}',
+                                        'threat_id': f'FILE-{file}',
                                         'threat_type': 'Potential Ransomware File',
                                         'category': 'malware',
                                         'severity': 'critical',
@@ -423,9 +423,9 @@ class RealTimeThreatDetector:
         try:
             # Check for unusual number of processes
             process_count = len(list(psutil.process_iter()))
-            if process_count > 250:
+            if process_count > 500:
                 threat = {
-                    'threat_id': f'PROC-COUNT-{int(time.time())}',
+                    'threat_id': f'PROC-COUNT-HIGH',
                     'threat_type': 'High Process Count',
                     'category': 'system',
                     'severity': 'low',
@@ -857,6 +857,26 @@ def scan_tools():
             file.save(tmp.name)
             tmp.close()
             result = scan_file(tmp.name, file.filename)
+
+            # Save detected threats to the database so they appear on the dashboard
+            severity_map = {'Critical': 'critical', 'High': 'high', 'Medium': 'medium', 'Low': 'low'}
+            for idx, t in enumerate(result.get('threats_found', [])):
+                tid = f"FILESCAN-{result.get('sha256', 'unknown')[:12]}-{idx}"
+                if not Threat.query.filter_by(threat_id=tid).first():
+                    threat_record = Threat(
+                        user_id=current_user.id,
+                        threat_id=tid,
+                        threat_type=t.get('name', 'File Threat'),
+                        category=t.get('category', 'file_scan'),
+                        severity=severity_map.get(t.get('severity', 'Medium'), 'medium'),
+                        description=f"[{file.filename}] {t.get('detail', t.get('name', ''))}",
+                        file_path=file.filename,
+                        detected_at=datetime.utcnow(),
+                        status='detected'
+                    )
+                    db.session.add(threat_record)
+            db.session.commit()
+
             return jsonify(result)
         finally:
             import os
@@ -945,6 +965,21 @@ def bulk_mitigate_threats():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': f'Bulk mitigation failed: {str(e)}'})
+
+@app.route('/api/threats/clear-all', methods=['POST'])
+@login_required
+def clear_all_threats():
+    """Clear all threats for the current user and reset the count"""
+    try:
+        deleted = Threat.query.filter_by(user_id=current_user.id).delete()
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': f'Cleared {deleted} threats. Counter reset to 0.'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': f'Failed to clear threats: {str(e)}'})
 
 @app.route('/api/threats/<threat_id>/details')
 @login_required
@@ -1119,6 +1154,24 @@ def init_db():
     with app.app_context():
         db.create_all()
         print("✓ Database initialized")
+
+        # Clean up old monitoring false positives on startup
+        old_monitoring = Threat.query.filter(
+            db.or_(
+                Threat.threat_id.like('PROC-%'),
+                Threat.threat_id.like('IP-%'),
+                Threat.threat_id.like('PORT-%'),
+                Threat.threat_id.like('CPU-%'),
+                Threat.threat_id.like('MEM-%'),
+                Threat.threat_id.like('PATTERN-%'),
+                Threat.threat_id.like('FILE-%'),
+                Threat.threat_id.like('PROC-COUNT-%'),
+            )
+        ).delete(synchronize_session=False)
+        if old_monitoring:
+            db.session.commit()
+            print(f"✓ Cleaned up {old_monitoring} old monitoring threats")
+
         create_test_data()
 
 # ==============================================
