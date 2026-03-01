@@ -829,6 +829,44 @@ def settings():
     """System Settings"""
     return render_template('settings.html', user=current_user)
 
+@app.route('/scan-tools', methods=['GET', 'POST'])
+@login_required
+def scan_tools():
+    """File Scanner — Upload and scan files for hacking tools"""
+    if request.method == 'POST':
+        import json, tempfile
+        from backend.services.file_scanner import scan_file
+
+        if 'file' not in request.files:
+            return jsonify({"error": "No file selected"}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({"error": "No file selected"}), 400
+
+        # Limit file size to 50MB
+        file.seek(0, 2)
+        size = file.tell()
+        file.seek(0)
+        if size > 50 * 1024 * 1024:
+            return jsonify({"error": "File too large (max 50MB)"}), 400
+
+        # Save to temp file, scan, then delete
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix='_' + file.filename)
+        try:
+            file.save(tmp.name)
+            tmp.close()
+            result = scan_file(tmp.name, file.filename)
+            return jsonify(result)
+        finally:
+            import os
+            try:
+                os.unlink(tmp.name)
+            except Exception:
+                pass
+
+    return render_template('scan_tools.html', user=current_user)
+
 # ==============================================
 # API ENDPOINTS
 # ==============================================

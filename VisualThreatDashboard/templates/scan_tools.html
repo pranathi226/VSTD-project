@@ -1,0 +1,603 @@
+{% extends "base.html" %}
+{% block title %}File Scanner{% endblock %}
+
+{% block extra_head %}
+<style>
+    .scanner-card {
+        background: rgba(26, 60, 110, .55);
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 16px;
+        padding: 28px;
+        margin-bottom: 24px
+    }
+
+    .upload-zone {
+        border: 2px dashed rgba(0, 180, 216, .4);
+        border-radius: 16px;
+        padding: 50px 30px;
+        text-align: center;
+        transition: all .3s;
+        cursor: pointer;
+        background: rgba(0, 180, 216, .04)
+    }
+
+    .upload-zone:hover,
+    .upload-zone.drag-over {
+        border-color: #00b4d8;
+        background: rgba(0, 180, 216, .1);
+        transform: translateY(-2px)
+    }
+
+    .upload-zone i {
+        font-size: 52px;
+        color: #00b4d8;
+        margin-bottom: 16px;
+        display: block
+    }
+
+    .upload-zone h5 {
+        color: #f8f9fa;
+        margin-bottom: 8px;
+        font-weight: 600
+    }
+
+    .upload-zone p {
+        color: #6b7d99;
+        font-size: 14px;
+        margin: 0
+    }
+
+    .btn-scan {
+        background: linear-gradient(135deg, #00b4d8, #0077b6);
+        color: #fff;
+        border: none;
+        padding: 12px 32px;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all .3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 15px
+    }
+
+    .btn-scan:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0, 180, 216, .35)
+    }
+
+    .btn-scan:disabled {
+        opacity: .5;
+        cursor: not-allowed;
+        transform: none
+    }
+
+    .file-info {
+        background: rgba(10, 25, 49, .7);
+        border: 1px solid rgba(0, 180, 216, .2);
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-top: 18px;
+        display: none;
+        font-size: 14px
+    }
+
+    .file-info .filename {
+        color: #00b4d8;
+        font-weight: 600
+    }
+
+    .file-info .filesize {
+        color: #6b7d99;
+        margin-left: 12px
+    }
+
+    .file-info .remove-btn {
+        color: #e63946;
+        cursor: pointer;
+        float: right
+    }
+
+    /* Scanner animation */
+    .scanning-anim {
+        display: none;
+        text-align: center;
+        padding: 40px
+    }
+
+    .scanning-anim .scanner-bar {
+        width: 100%;
+        height: 4px;
+        background: rgba(255, 255, 255, .1);
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 20px 0
+    }
+
+    .scanning-anim .scanner-bar .fill {
+        height: 100%;
+        background: linear-gradient(90deg, #00b4d8, #0077b6, #00b4d8);
+        border-radius: 4px;
+        animation: scanProgress 2s ease-in-out infinite;
+        width: 40%
+    }
+
+    @keyframes scanProgress {
+        0% {
+            transform: translateX(-100%)
+        }
+
+        100% {
+            transform: translateX(350%)
+        }
+    }
+
+    .scanning-anim p {
+        color: #00b4d8;
+        font-size: 15px;
+        margin-top: 12px
+    }
+
+    /* Results */
+    .result-card {
+        background: rgba(26, 60, 110, .55);
+        border-radius: 14px;
+        padding: 24px;
+        margin-bottom: 20px;
+        display: none
+    }
+
+    .result-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, .08)
+    }
+
+    .risk-badge {
+        padding: 8px 20px;
+        border-radius: 30px;
+        font-weight: 700;
+        font-size: 14px;
+        letter-spacing: .5px
+    }
+
+    .risk-safe {
+        background: rgba(42, 157, 143, .2);
+        color: #2a9d8f;
+        border: 1px solid rgba(42, 157, 143, .3)
+    }
+
+    .risk-low {
+        background: rgba(233, 196, 106, .2);
+        color: #e9c46a;
+        border: 1px solid rgba(233, 196, 106, .3)
+    }
+
+    .risk-medium {
+        background: rgba(244, 162, 97, .2);
+        color: #f4a261;
+        border: 1px solid rgba(244, 162, 97, .3)
+    }
+
+    .risk-high {
+        background: rgba(230, 57, 70, .2);
+        color: #e63946;
+        border: 1px solid rgba(230, 57, 70, .3)
+    }
+
+    .score-ring {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        font-weight: 800;
+        flex-shrink: 0
+    }
+
+    .meta-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 12px;
+        margin: 16px 0
+    }
+
+    .meta-item {
+        background: rgba(10, 25, 49, .6);
+        border-radius: 8px;
+        padding: 10px 14px
+    }
+
+    .meta-item .label {
+        font-size: 11px;
+        color: #6b7d99;
+        text-transform: uppercase;
+        letter-spacing: .5px
+    }
+
+    .meta-item .value {
+        color: #f8f9fa;
+        font-size: 13px;
+        font-family: 'Courier New', monospace;
+        word-break: break-all;
+        margin-top: 2px
+    }
+
+    /* Threat table */
+    .threat-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0 6px;
+        margin-top: 16px
+    }
+
+    .threat-table th {
+        color: #6b7d99;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        padding: 8px 14px;
+        border: none
+    }
+
+    .threat-table td {
+        background: rgba(10, 25, 49, .5);
+        padding: 12px 14px;
+        font-size: 13px;
+        border: none
+    }
+
+    .threat-table tr td:first-child {
+        border-radius: 8px 0 0 8px
+    }
+
+    .threat-table tr td:last-child {
+        border-radius: 0 8px 8px 0
+    }
+
+    .sev-pill {
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        display: inline-block
+    }
+
+    .sev-critical {
+        background: rgba(230, 57, 70, .2);
+        color: #e63946
+    }
+
+    .sev-high {
+        background: rgba(244, 162, 97, .2);
+        color: #f4a261
+    }
+
+    .sev-medium {
+        background: rgba(233, 196, 106, .2);
+        color: #e9c46a
+    }
+
+    .sev-low {
+        background: rgba(42, 157, 143, .2);
+        color: #2a9d8f
+    }
+
+    .cat-tag {
+        background: rgba(0, 180, 216, .12);
+        color: #00b4d8;
+        padding: 3px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500
+    }
+
+    .toast-msg {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        background: rgba(42, 157, 143, .9);
+        color: #fff;
+        padding: 14px 24px;
+        border-radius: 10px;
+        z-index: 9999;
+        font-size: 14px;
+        display: none;
+        animation: slideIn .4s ease
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0
+        }
+
+        to {
+            transform: translateX(0);
+            opacity: 1
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="toast-msg" id="toastMsg"></div>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h4 class="mb-1"><i class="bi bi-shield-exclamation me-2"></i>File Scanner</h4>
+        <p class="text-muted mb-0">Upload files to detect hacking tools, malware, and suspicious code</p>
+    </div>
+    <a href="/dashboard" class="btn-scan"><i class="bi bi-speedometer2"></i> Dashboard</a>
+</div>
+
+<!-- Upload Area -->
+<div class="scanner-card" id="uploadCard">
+    <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <i class="bi bi-cloud-arrow-up"></i>
+        <h5>Drop file here or click to browse</h5>
+        <p>Supports all file types — .py, .sh, .exe, .bat, .js, .php, .rb, .c, .txt, etc. (Max 50MB)</p>
+    </div>
+
+    <input type="file" id="fileInput" style="display:none" onchange="handleFile(this)">
+
+    <div class="file-info" id="fileInfo">
+        <span class="filename" id="fileName"></span>
+        <span class="filesize" id="fileSize"></span>
+        <span class="remove-btn" onclick="clearFile()"><i class="bi bi-x-lg"></i> Remove</span>
+    </div>
+
+    <div style="margin-top:20px;text-align:center">
+        <button class="btn-scan" id="scanBtn" onclick="startScan()" disabled>
+            <i class="bi bi-search"></i> Scan File
+        </button>
+    </div>
+</div>
+
+<!-- Scanning Animation -->
+<div class="scanning-anim" id="scanningAnim">
+    <i class="bi bi-shield-check" style="font-size:48px;color:#00b4d8"></i>
+    <div class="scanner-bar">
+        <div class="fill"></div>
+    </div>
+    <p><i class="bi bi-hourglass-split me-2"></i>Scanning file for threats...</p>
+</div>
+
+<!-- Results -->
+<div class="result-card" id="resultCard">
+    <div class="result-header">
+        <div class="score-ring" id="scoreRing">0</div>
+        <div style="flex:1">
+            <h5 id="resultTitle" style="margin:0 0 4px;font-weight:700"></h5>
+            <p id="resultSummary" style="margin:0;color:#adb5bd;font-size:14px"></p>
+        </div>
+        <span class="risk-badge" id="riskBadge"></span>
+    </div>
+
+    <!-- File Metadata -->
+    <div class="meta-grid" id="metaGrid"></div>
+
+    <!-- Threats Found -->
+    <div id="threatsSection" style="display:none">
+        <h6 style="color:#e63946;margin:20px 0 10px;display:flex;align-items:center;gap:8px">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            Threats Detected (<span id="threatCount">0</span>)
+        </h6>
+        <table class="threat-table">
+            <thead>
+                <tr>
+                    <th>Threat</th>
+                    <th>Severity</th>
+                    <th>Category</th>
+                    <th>Line</th>
+                    <th>Detail</th>
+                </tr>
+            </thead>
+            <tbody id="threatRows"></tbody>
+        </table>
+    </div>
+
+    <!-- Safe message -->
+    <div id="safeSection" style="display:none;text-align:center;padding:30px">
+        <i class="bi bi-check-circle" style="font-size:52px;color:#2a9d8f;display:block;margin-bottom:12px"></i>
+        <h5 style="color:#2a9d8f;margin:0">No Threats Detected</h5>
+        <p style="color:#6b7d99;margin-top:8px">This file appears to be clean and safe.</p>
+    </div>
+
+    <div style="margin-top:20px;text-align:center">
+        <button class="btn-scan" onclick="resetScanner()"
+            style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15)">
+            <i class="bi bi-arrow-repeat"></i> Scan Another File
+        </button>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    let selectedFile = null;
+
+    // ── Drag and Drop ──
+    const dropZone = document.getElementById('dropZone');
+
+    dropZone.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('drag-over');
+    });
+
+    dropZone.addEventListener('drop', e => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        if (e.dataTransfer.files.length > 0) {
+            document.getElementById('fileInput').files = e.dataTransfer.files;
+            handleFile(document.getElementById('fileInput'));
+        }
+    });
+
+    function handleFile(input) {
+        if (input.files.length === 0) return;
+        selectedFile = input.files[0];
+
+        // Check size
+        if (selectedFile.size > 50 * 1024 * 1024) {
+            showToast('File is too large (max 50MB)', true);
+            clearFile();
+            return;
+        }
+
+        document.getElementById('fileName').textContent = selectedFile.name;
+        document.getElementById('fileSize').textContent = formatSize(selectedFile.size);
+        document.getElementById('fileInfo').style.display = 'block';
+        document.getElementById('scanBtn').disabled = false;
+    }
+
+    function clearFile() {
+        selectedFile = null;
+        document.getElementById('fileInput').value = '';
+        document.getElementById('fileInfo').style.display = 'none';
+        document.getElementById('scanBtn').disabled = true;
+    }
+
+    function formatSize(bytes) {
+        const units = ['B', 'KB', 'MB', 'GB'];
+        let i = 0;
+        while (bytes >= 1024 && i < units.length - 1) { bytes /= 1024; i++; }
+        return bytes.toFixed(1) + ' ' + units[i];
+    }
+
+    // ── Scan ──
+    async function startScan() {
+        if (!selectedFile) return;
+
+        document.getElementById('uploadCard').style.display = 'none';
+        document.getElementById('scanningAnim').style.display = 'block';
+        document.getElementById('resultCard').style.display = 'none';
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        try {
+            const resp = await fetch('/scan-tools', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await resp.json();
+
+            if (data.error) {
+                showToast(data.error, true);
+                resetScanner();
+                return;
+            }
+
+            showResults(data);
+
+        } catch (e) {
+            showToast('Scan failed: ' + e.message, true);
+            resetScanner();
+        }
+    }
+
+    function showResults(data) {
+        document.getElementById('scanningAnim').style.display = 'none';
+        document.getElementById('resultCard').style.display = 'block';
+
+        // Score ring
+        const scoreRing = document.getElementById('scoreRing');
+        scoreRing.textContent = data.threat_score;
+        if (data.threat_score === 0) {
+            scoreRing.style.background = 'rgba(42, 157, 143, .2)';
+            scoreRing.style.color = '#2a9d8f';
+            scoreRing.style.border = '3px solid #2a9d8f';
+        } else if (data.threat_score <= 25) {
+            scoreRing.style.background = 'rgba(233, 196, 106, .2)';
+            scoreRing.style.color = '#e9c46a';
+            scoreRing.style.border = '3px solid #e9c46a';
+        } else if (data.threat_score <= 60) {
+            scoreRing.style.background = 'rgba(244, 162, 97, .2)';
+            scoreRing.style.color = '#f4a261';
+            scoreRing.style.border = '3px solid #f4a261';
+        } else {
+            scoreRing.style.background = 'rgba(230, 57, 70, .2)';
+            scoreRing.style.color = '#e63946';
+            scoreRing.style.border = '3px solid #e63946';
+        }
+
+        // Title + summary
+        document.getElementById('resultTitle').textContent = data.filename;
+        document.getElementById('resultSummary').textContent = data.summary;
+
+        // Risk badge
+        const badge = document.getElementById('riskBadge');
+        badge.textContent = data.risk_level.toUpperCase();
+        badge.className = 'risk-badge risk-' + data.risk_level.toLowerCase();
+
+        // Metadata
+        const metaGrid = document.getElementById('metaGrid');
+        metaGrid.innerHTML = `
+            <div class="meta-item"><div class="label">File Type</div><div class="value">${esc(data.file_type)}</div></div>
+            <div class="meta-item"><div class="label">File Size</div><div class="value">${esc(data.file_size_display || formatSize(data.file_size))}</div></div>
+            <div class="meta-item"><div class="label">MD5 Hash</div><div class="value">${esc(data.md5)}</div></div>
+            <div class="meta-item"><div class="label">SHA-256 Hash</div><div class="value">${esc(data.sha256)}</div></div>
+            <div class="meta-item"><div class="label">Threats Found</div><div class="value">${data.threat_count}</div></div>
+            <div class="meta-item"><div class="label">Scan Time</div><div class="value">${esc(data.scan_time)}</div></div>
+        `;
+
+        // Threats or safe
+        if (data.threats_found && data.threats_found.length > 0) {
+            document.getElementById('threatsSection').style.display = 'block';
+            document.getElementById('safeSection').style.display = 'none';
+            document.getElementById('threatCount').textContent = data.threats_found.length;
+
+            let rows = '';
+            data.threats_found.forEach(t => {
+                const sevClass = 'sev-' + t.severity.toLowerCase();
+                rows += `<tr>
+                    <td style="font-weight:600;color:#f8f9fa">${esc(t.name)}</td>
+                    <td><span class="sev-pill ${sevClass}">${esc(t.severity)}</span></td>
+                    <td><span class="cat-tag">${esc(t.category)}</span></td>
+                    <td style="color:#6b7d99">${t.line || '—'}</td>
+                    <td style="color:#6b7d99;font-family:monospace;font-size:12px;max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.detail || '')}</td>
+                </tr>`;
+            });
+            document.getElementById('threatRows').innerHTML = rows;
+        } else {
+            document.getElementById('threatsSection').style.display = 'none';
+            document.getElementById('safeSection').style.display = 'block';
+        }
+    }
+
+    function resetScanner() {
+        clearFile();
+        document.getElementById('uploadCard').style.display = 'block';
+        document.getElementById('scanningAnim').style.display = 'none';
+        document.getElementById('resultCard').style.display = 'none';
+    }
+
+    function esc(str) {
+        if (!str) return '';
+        const d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+    }
+
+    function showToast(msg, isError) {
+        const t = document.getElementById('toastMsg');
+        t.textContent = msg;
+        t.style.background = isError ? 'rgba(230,57,70,.9)' : 'rgba(42,157,143,.9)';
+        t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none' }, 3000);
+    }
+</script>
+{% endblock %}

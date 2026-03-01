@@ -3,34 +3,217 @@
 
 {% block extra_head %}
 <style>
-    .set-card{background:rgba(26,60,110,.55);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:24px;margin-bottom:20px}
-    .set-card h6{margin-bottom:16px;display:flex;align-items:center;gap:8px}
-    .set-row{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06)}
-    .set-row:last-child{border-bottom:none}
-    .set-label{font-size:14px;font-weight:500}.set-desc{font-size:12px;color:#6b7d99;margin-top:2px}
-    .set-input{background:rgba(10,25,49,.85);border:1px solid rgba(255,255,255,.15);color:#f8f9fa;padding:8px 14px;border-radius:8px;font-size:14px;width:260px}
-    .set-input:focus{outline:none;border-color:#00b4d8}
-    .set-select{background:rgba(10,25,49,.85);border:1px solid rgba(255,255,255,.15);color:#f8f9fa;padding:8px 14px;border-radius:8px;font-size:14px}
-    .set-select:focus{outline:none;border-color:#00b4d8}
+    .set-card {
+        background: rgba(26, 60, 110, .55);
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 12px;
+        padding: 24px;
+        margin-bottom: 20px
+    }
 
-    .toggle-switch{position:relative;width:48px;height:26px;display:inline-block}
-    .toggle-switch input{opacity:0;width:0;height:0}
-    .toggle-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.15);border-radius:26px;transition:.3s}
-    .toggle-slider:before{position:absolute;content:"";height:20px;width:20px;left:3px;bottom:3px;background:#adb5bd;border-radius:50%;transition:.3s}
-    .toggle-switch input:checked+.toggle-slider{background:rgba(0,180,216,.5)}
-    .toggle-switch input:checked+.toggle-slider:before{transform:translateX(22px);background:#00b4d8}
+    .set-card h6 {
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px
+    }
 
-    .btn-save{background:linear-gradient(135deg,#00b4d8,#0077b6);color:#fff;border:none;padding:10px 28px;border-radius:8px;font-weight:600;cursor:pointer;transition:all .3s;display:inline-flex;align-items:center;gap:7px;font-size:14px}
-    .btn-save:hover{transform:translateY(-2px);box-shadow:0 5px 18px rgba(0,180,216,.3)}
-    .btn-outline-set{background:transparent;border:1px solid rgba(255,255,255,.15);color:#f8f9fa;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .2s}
-    .btn-outline-set:hover{background:rgba(255,255,255,.06)}
-    .btn-danger-set{background:rgba(230,57,70,.12);border:1px solid rgba(230,57,70,.3);color:#e63946;padding:8px 20px;border-radius:8px;cursor:pointer;font-size:13px;transition:all .2s}
-    .btn-danger-set:hover{background:rgba(230,57,70,.25)}
+    .set-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, .06)
+    }
 
-    .profile-avatar{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#00b4d8,#0077b6);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff}
-    .info-box{background:rgba(0,180,216,.08);border:1px solid rgba(0,180,216,.2);border-radius:10px;padding:14px 18px;font-size:13px;color:#adb5bd;margin-bottom:20px}
-    .toast-msg{position:fixed;top:24px;right:24px;background:rgba(42,157,143,.9);color:#fff;padding:14px 24px;border-radius:10px;z-index:9999;font-size:14px;display:none;animation:slideIn .4s ease}
-    @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+    .set-row:last-child {
+        border-bottom: none
+    }
+
+    .set-label {
+        font-size: 14px;
+        font-weight: 500
+    }
+
+    .set-desc {
+        font-size: 12px;
+        color: #6b7d99;
+        margin-top: 2px
+    }
+
+    .set-input {
+        background: rgba(10, 25, 49, .85);
+        border: 1px solid rgba(255, 255, 255, .15);
+        color: #f8f9fa;
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-size: 14px;
+        width: 260px
+    }
+
+    .set-input:focus {
+        outline: none;
+        border-color: #00b4d8
+    }
+
+    .set-select {
+        background: rgba(10, 25, 49, .85);
+        border: 1px solid rgba(255, 255, 255, .15);
+        color: #f8f9fa;
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-size: 14px
+    }
+
+    .set-select:focus {
+        outline: none;
+        border-color: #00b4d8
+    }
+
+    .toggle-switch {
+        position: relative;
+        width: 48px;
+        height: 26px;
+        display: inline-block
+    }
+
+    .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0
+    }
+
+    .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, .15);
+        border-radius: 26px;
+        transition: .3s
+    }
+
+    .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 20px;
+        width: 20px;
+        left: 3px;
+        bottom: 3px;
+        background: #adb5bd;
+        border-radius: 50%;
+        transition: .3s
+    }
+
+    .toggle-switch input:checked+.toggle-slider {
+        background: rgba(0, 180, 216, .5)
+    }
+
+    .toggle-switch input:checked+.toggle-slider:before {
+        transform: translateX(22px);
+        background: #00b4d8
+    }
+
+    .btn-save {
+        background: linear-gradient(135deg, #00b4d8, #0077b6);
+        color: #fff;
+        border: none;
+        padding: 10px 28px;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all .3s;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 14px
+    }
+
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 18px rgba(0, 180, 216, .3)
+    }
+
+    .btn-outline-set {
+        background: transparent;
+        border: 1px solid rgba(255, 255, 255, .15);
+        color: #f8f9fa;
+        padding: 8px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all .2s
+    }
+
+    .btn-outline-set:hover {
+        background: rgba(255, 255, 255, .06)
+    }
+
+    .btn-danger-set {
+        background: rgba(230, 57, 70, .12);
+        border: 1px solid rgba(230, 57, 70, .3);
+        color: #e63946;
+        padding: 8px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all .2s
+    }
+
+    .btn-danger-set:hover {
+        background: rgba(230, 57, 70, .25)
+    }
+
+    .profile-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #00b4d8, #0077b6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 26px;
+        font-weight: 700;
+        color: #fff
+    }
+
+    .info-box {
+        background: rgba(0, 180, 216, .08);
+        border: 1px solid rgba(0, 180, 216, .2);
+        border-radius: 10px;
+        padding: 14px 18px;
+        font-size: 13px;
+        color: #adb5bd;
+        margin-bottom: 20px
+    }
+
+    .toast-msg {
+        position: fixed;
+        top: 24px;
+        right: 24px;
+        background: rgba(42, 157, 143, .9);
+        color: #fff;
+        padding: 14px 24px;
+        border-radius: 10px;
+        z-index: 9999;
+        font-size: 14px;
+        display: none;
+        animation: slideIn .4s ease
+    }
+
+    @keyframes slideIn {
+        from {
+            transform: translateX(100%);
+            opacity: 0
+        }
+
+        to {
+            transform: translateX(0);
+            opacity: 1
+        }
+    }
 </style>
 {% endblock %}
 
@@ -54,16 +237,22 @@
                 <div>
                     <div style="font-weight:600;font-size:16px">{{ user.name if user else 'User' }}</div>
                     <div style="font-size:13px;color:#6b7d99">{{ user.email if user else '' }}</div>
-                    <div style="font-size:12px;color:#6b7d99">Role: {{ user.role if user else 'user' }} &middot; Joined {{ user.created_at.strftime('%b %Y') if user and user.created_at else '--' }}</div>
+                    <div style="font-size:12px;color:#6b7d99">Role: {{ user.role if user else 'user' }} &middot; Joined
+                        {{ user.created_at.strftime('%b %Y') if user and user.created_at else '--' }}</div>
                 </div>
             </div>
             <div class="set-row">
-                <div><div class="set-label">Display Name</div></div>
+                <div>
+                    <div class="set-label">Display Name</div>
+                </div>
                 <input type="text" class="set-input" id="settingName" value="{{ user.name if user else '' }}">
             </div>
             <div class="set-row">
-                <div><div class="set-label">Email Address</div></div>
-                <input type="email" class="set-input" id="settingEmail" value="{{ user.email if user else '' }}" disabled style="opacity:.6">
+                <div>
+                    <div class="set-label">Email Address</div>
+                </div>
+                <input type="email" class="set-input" id="settingEmail" value="{{ user.email if user else '' }}"
+                    disabled style="opacity:.6">
             </div>
         </div>
 
@@ -76,7 +265,8 @@
                     <div class="set-desc">Continuously scan for threats in the background</div>
                 </div>
                 <label class="toggle-switch">
-                    <input type="checkbox" id="toggleMonitoring" {{ 'checked' if user and user.monitoring_active else '' }} onchange="toggleMonitoring(this)">
+                    <input type="checkbox" id="toggleMonitoring" {{ 'checked' if user and user.monitoring_active else ''
+                        }} onchange="toggleMonitoring(this)">
                     <span class="toggle-slider"></span>
                 </label>
             </div>
@@ -156,10 +346,41 @@
             </div>
         </div>
 
+        <!-- API Key Management -->
+        <div class="set-card">
+            <h6><i class="bi bi-key"></i> API Keys</h6>
+            <div class="info-box">
+                API keys are encrypted before storage and never exposed in the frontend. Only masked values are shown.
+            </div>
+            <div class="set-row" style="flex-direction:column;align-items:stretch;gap:12px">
+                <div class="d-flex gap-2">
+                    <input type="text" class="set-input" id="apiKeyName" placeholder="Key Name (e.g. VirusTotal)"
+                        style="width:180px">
+                    <select class="set-input" id="apiKeyService"
+                        style="width:140px;background:rgba(10,25,49,.85);border:1px solid rgba(255,255,255,.15);color:#f8f9fa;border-radius:8px;padding:8px">
+                        <option value="virustotal">VirusTotal</option>
+                        <option value="shodan">Shodan</option>
+                        <option value="abuseipdb">AbuseIPDB</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="d-flex gap-2">
+                    <input type="password" class="set-input" id="apiKeyValue" placeholder="Paste your API key here"
+                        style="flex:1">
+                    <button class="btn-save" onclick="saveApiKey()" style="white-space:nowrap"><i
+                            class="bi bi-plus-lg"></i> Save Key</button>
+                </div>
+            </div>
+            <div id="apiKeysList" style="margin-top:16px">
+                <div style="text-align:center;padding:16px;color:#6b7d99;font-size:13px">Loading saved keys...</div>
+            </div>
+        </div>
+
         <!-- Actions -->
         <div class="d-flex gap-3 mb-4">
             <button class="btn-save" onclick="saveSettings()"><i class="bi bi-check-lg"></i> Save Settings</button>
-            <button class="btn-outline-set" onclick="runManualScan()"><i class="bi bi-search"></i> Run Manual Scan</button>
+            <button class="btn-outline-set" onclick="runManualScan()"><i class="bi bi-search"></i> Run Manual
+                Scan</button>
         </div>
     </div>
 
@@ -170,7 +391,8 @@
             <h6><i class="bi bi-info-circle"></i> System Info</h6>
             <div class="set-row">
                 <div class="set-label">Security Score</div>
-                <span style="font-weight:700;font-size:20px;color:#00b4d8">{{ user.security_score if user else '--' }}</span>
+                <span style="font-weight:700;font-size:20px;color:#00b4d8">{{ user.security_score if user else '--'
+                    }}</span>
             </div>
             <div class="set-row">
                 <div class="set-label">Monitoring Status</div>
@@ -181,11 +403,13 @@
             </div>
             <div class="set-row">
                 <div class="set-label">Last Scan</div>
-                <span style="font-size:13px;color:#6b7d99">{{ user.last_scan.strftime('%b %d, %Y %H:%M') if user and user.last_scan else 'Never' }}</span>
+                <span style="font-size:13px;color:#6b7d99">{{ user.last_scan.strftime('%b %d, %Y %H:%M') if user and
+                    user.last_scan else 'Never' }}</span>
             </div>
             <div class="set-row">
                 <div class="set-label">Last Login</div>
-                <span style="font-size:13px;color:#6b7d99">{{ user.last_login.strftime('%b %d, %Y %H:%M') if user and user.last_login else '--' }}</span>
+                <span style="font-size:13px;color:#6b7d99">{{ user.last_login.strftime('%b %d, %Y %H:%M') if user and
+                    user.last_login else '--' }}</span>
             </div>
         </div>
 
@@ -193,10 +417,15 @@
         <div class="set-card">
             <h6><i class="bi bi-lightning"></i> Quick Actions</h6>
             <div class="d-grid gap-2">
-                <button class="btn-outline-set" onclick="runManualScan()" style="width:100%;text-align:left"><i class="bi bi-search me-2"></i>Run System Scan</button>
-                <button class="btn-outline-set" onclick="window.location.href='/dashboard'" style="width:100%;text-align:left"><i class="bi bi-speedometer2 me-2"></i>Go to Dashboard</button>
-                <button class="btn-outline-set" onclick="window.location.href='/reports'" style="width:100%;text-align:left"><i class="bi bi-file-earmark-bar-graph me-2"></i>View Reports</button>
-                <button class="btn-outline-set" onclick="window.location.href='/threat-hunting'" style="width:100%;text-align:left"><i class="bi bi-binoculars me-2"></i>Threat Hunting</button>
+                <button class="btn-outline-set" onclick="runManualScan()" style="width:100%;text-align:left"><i
+                        class="bi bi-search me-2"></i>Run System Scan</button>
+                <button class="btn-outline-set" onclick="window.location.href='/dashboard'"
+                    style="width:100%;text-align:left"><i class="bi bi-speedometer2 me-2"></i>Go to Dashboard</button>
+                <button class="btn-outline-set" onclick="window.location.href='/reports'"
+                    style="width:100%;text-align:left"><i class="bi bi-file-earmark-bar-graph me-2"></i>View
+                    Reports</button>
+                <button class="btn-outline-set" onclick="window.location.href='/threat-hunting'"
+                    style="width:100%;text-align:left"><i class="bi bi-binoculars me-2"></i>Threat Hunting</button>
             </div>
         </div>
 
@@ -207,8 +436,12 @@
                 These actions are irreversible. Proceed with caution.
             </div>
             <div class="d-grid gap-2">
-                <button class="btn-danger-set" onclick="if(confirm('Clear all threat data? This cannot be undone.'))clearThreats()" style="width:100%;text-align:left"><i class="bi bi-trash me-2"></i>Clear All Threat Data</button>
-                <button class="btn-danger-set" onclick="if(confirm('Are you sure you want to logout?'))window.location.href='/logout'" style="width:100%;text-align:left"><i class="bi bi-box-arrow-right me-2"></i>Logout</button>
+                <button class="btn-danger-set"
+                    onclick="if(confirm('Clear all threat data? This cannot be undone.'))clearThreats()"
+                    style="width:100%;text-align:left"><i class="bi bi-trash me-2"></i>Clear All Threat Data</button>
+                <button class="btn-danger-set"
+                    onclick="if(confirm('Are you sure you want to logout?'))window.location.href='/logout'"
+                    style="width:100%;text-align:left"><i class="bi bi-box-arrow-right me-2"></i>Logout</button>
             </div>
         </div>
     </div>
@@ -217,37 +450,144 @@
 
 {% block extra_scripts %}
 <script>
-function showToast(msg,isError){
-    const t=document.getElementById('toastMsg');
-    t.textContent=msg;
-    t.style.background=isError?'rgba(230,57,70,.9)':'rgba(42,157,143,.9)';
-    t.style.display='block';
-    setTimeout(()=>{t.style.display='none'},3000);
-}
+    const API_BASE = 'http://localhost:8000';
+    let authToken = localStorage.getItem('vstd_token') || '';
 
-function toggleMonitoring(el){
-    const action=el.checked?'start':'stop';
-    fetch('/api/monitoring/toggle',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action})})
-    .then(r=>r.json()).then(d=>{
-        showToast(d.message,!d.success);
-        if(!d.success) el.checked=!el.checked;
-    }).catch(e=>{showToast('Failed: '+e,true);el.checked=!el.checked;});
-}
+    function showToast(msg, isError) {
+        const t = document.getElementById('toastMsg');
+        t.textContent = msg;
+        t.style.background = isError ? 'rgba(230,57,70,.9)' : 'rgba(42,157,143,.9)';
+        t.style.display = 'block';
+        setTimeout(() => { t.style.display = 'none' }, 3000);
+    }
 
-function runManualScan(){
-    showToast('Starting system scan...');
-    fetch('/api/system/scan',{method:'POST',headers:{'Content-Type':'application/json'}})
-    .then(r=>r.json()).then(d=>{
-        showToast(d.message,!d.success);
-    }).catch(e=>showToast('Scan failed: '+e,true));
-}
+    function getHeaders() {
+        return {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + authToken
+        };
+    }
 
-function saveSettings(){
-    showToast('Settings saved successfully!');
-}
+    function toggleMonitoring(el) {
+        const action = el.checked ? 'start' : 'stop';
+        fetch('/api/monitoring/toggle', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action }) })
+            .then(r => r.json()).then(d => {
+                showToast(d.message, !d.success);
+                if (!d.success) el.checked = !el.checked;
+            }).catch(e => { showToast('Failed: ' + e, true); el.checked = !el.checked; });
+    }
 
-function clearThreats(){
-    showToast('Threat data cleared (feature requires backend endpoint).');
-}
+    function runManualScan() {
+        showToast('Starting system scan...');
+        fetch('/api/system/scan', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+            .then(r => r.json()).then(d => {
+                showToast(d.message, !d.success);
+            }).catch(e => showToast('Scan failed: ' + e, true));
+    }
+
+    function saveSettings() {
+        showToast('Settings saved successfully!');
+    }
+
+    function clearThreats() {
+        showToast('Threat data cleared (feature requires backend endpoint).');
+    }
+
+    // ── API Key Management ──
+    async function saveApiKey() {
+        const name = document.getElementById('apiKeyName').value.trim();
+        const service = document.getElementById('apiKeyService').value;
+        const key = document.getElementById('apiKeyValue').value.trim();
+
+        if (!name || !key) {
+            showToast('Please fill in key name and value', true);
+            return;
+        }
+        if (!authToken) {
+            showToast('Please login to the FastAPI backend first', true);
+            return;
+        }
+
+        try {
+            const resp = await fetch(API_BASE + '/api-keys', {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ name, service, key })
+            });
+            if (resp.ok) {
+                showToast('API key saved securely!');
+                document.getElementById('apiKeyName').value = '';
+                document.getElementById('apiKeyValue').value = '';
+                loadApiKeys();
+            } else {
+                const data = await resp.json();
+                showToast(data.detail || 'Failed to save API key', true);
+            }
+        } catch (e) {
+            showToast('Connection error: ' + e.message, true);
+        }
+    }
+
+    async function loadApiKeys() {
+        if (!authToken) {
+            document.getElementById('apiKeysList').innerHTML = '<div style="text-align:center;padding:16px;color:#6b7d99;font-size:13px">Login to FastAPI backend to manage API keys</div>';
+            return;
+        }
+        try {
+            const resp = await fetch(API_BASE + '/api-keys', { headers: getHeaders() });
+            if (!resp.ok) {
+                document.getElementById('apiKeysList').innerHTML = '<div style="text-align:center;padding:16px;color:#6b7d99;font-size:13px">Failed to load keys</div>';
+                return;
+            }
+            const keys = await resp.json();
+            if (!keys.length) {
+                document.getElementById('apiKeysList').innerHTML = '<div style="text-align:center;padding:16px;color:#6b7d99;font-size:13px">No API keys saved yet</div>';
+                return;
+            }
+            let html = '';
+            keys.forEach(k => {
+                html += `<div class="set-row">
+                <div>
+                    <div class="set-label">${escHtml(k.name)}</div>
+                    <div class="set-desc">${escHtml(k.service)} &middot; <code style="color:#6b7d99">${escHtml(k.masked_key)}</code></div>
+                </div>
+                <button class="btn-danger-set" onclick="deleteApiKey(${k.id})" style="padding:4px 12px;font-size:12px">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>`;
+            });
+            document.getElementById('apiKeysList').innerHTML = html;
+        } catch (e) {
+            document.getElementById('apiKeysList').innerHTML = '<div style="text-align:center;padding:16px;color:#e63946;font-size:13px">Error: ' + e.message + '</div>';
+        }
+    }
+
+    async function deleteApiKey(id) {
+        if (!confirm('Delete this API key?')) return;
+        try {
+            const resp = await fetch(API_BASE + '/api-keys/' + id, {
+                method: 'DELETE',
+                headers: getHeaders()
+            });
+            if (resp.ok || resp.status === 204) {
+                showToast('API key deleted');
+                loadApiKeys();
+            } else {
+                showToast('Failed to delete key', true);
+            }
+        } catch (e) {
+            showToast('Error: ' + e.message, true);
+        }
+    }
+
+    function escHtml(str) {
+        if (!str) return '';
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // Load keys on page load
+    document.addEventListener('DOMContentLoaded', () => { loadApiKeys(); });
 </script>
 {% endblock %}

@@ -50,3 +50,11 @@ logs/
 
 # OS
 Thumbs.db
+
+# Database
+instance/
+*.db
+
+# Alembic
+alembic/versions/*.py
+!alembic/versions/.gitkeep
